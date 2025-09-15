@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { GoogleGenAI, Chat } from '@google/genai';
 import { AGENTS } from './constants';
@@ -65,6 +64,10 @@ const App: React.FC = () => {
   React.useEffect(() => {
     if (!ai) return;
 
+    // Clear previous chat history and state when agent changes
+    setMessages([]);
+    setIsLoading(false);
+    
     const newChat = ai.chats.create({
       model: 'gemini-2.5-flash',
       config: {
@@ -86,6 +89,7 @@ const App: React.FC = () => {
     setIsLoading(true);
     generationController.current = new AbortController();
     const agentMessageId = Date.now() + 1;
+    // Add a placeholder for the agent's response
     setMessages(prev => [...prev, { id: agentMessageId, text: '', sender: 'agent' }]);
 
     try {
@@ -101,9 +105,14 @@ const App: React.FC = () => {
       }
       speak(fullText);
     } catch (error) {
-      console.error("Error sending message:", error);
-      const errorText = "Lo siento, ocurrió un error al procesar tu solicitud.";
-      setMessages(prev => prev.map(msg => msg.id === agentMessageId ? { ...msg, text: errorText } : msg));
+       if (error instanceof Error && error.name === 'AbortError') {
+         console.log("Generation aborted");
+         setMessages(prev => prev.map(msg => msg.id === agentMessageId ? { ...msg, text: "Generación detenida." } : msg));
+       } else {
+        console.error("Error sending message:", error);
+        const errorText = "Lo siento, ocurrió un error al procesar tu solicitud. Verifica la configuración de la API Key.";
+        setMessages(prev => prev.map(msg => msg.id === agentMessageId ? { ...msg, text: errorText } : msg));
+       }
     } finally {
       setIsLoading(false);
       generationController.current = null;
@@ -114,7 +123,6 @@ const App: React.FC = () => {
     if (generationController.current) {
       generationController.current.abort();
     }
-    setIsLoading(false);
   };
 
   const speak = (text: string) => {
@@ -177,30 +185,37 @@ const App: React.FC = () => {
   }
   
   return (
-    <main className="w-screen h-screen bg-black text-white p-4 font-sans flex gap-4 overflow-hidden">
+    <main className="w-screen h-screen bg-gray-900 text-white p-4 font-sans flex gap-4 overflow-hidden">
       <div className="w-1/4 flex flex-col gap-4">
         <UserRankPanel rank="Aprendiz Consciente" onHomeClick={() => {}} />
         <AgentPanel agents={AGENTS} activeAgent={activeAgent} onSelectAgent={setActiveAgent} />
       </div>
 
       <div className="w-1/2 flex-shrink-0">
-         <ChatWindow 
-            messages={messages}
-            activeAgent={activeAgent}
-            onSendMessage={handleSendMessage}
-            isLoading={isLoading}
-            onStopGeneration={stopGeneration}
-            input={input}
-            setInput={setInput}
-            isListening={isListening}
-            onToggleListening={toggleListening}
-            isSpeaking={isSpeaking}
-            onStopSpeaking={handleStopSpeaking}
-        />
+         {ai ? (
+            <ChatWindow 
+                messages={messages}
+                activeAgent={activeAgent}
+                onSendMessage={handleSendMessage}
+                isLoading={isLoading}
+                onStopGeneration={stopGeneration}
+                input={input}
+                setInput={setInput}
+                isListening={isListening}
+                onToggleListening={toggleListening}
+                isSpeaking={isSpeaking}
+                onStopSpeaking={handleStopSpeaking}
+            />
+         ) : (
+            <div className="flex items-center justify-center h-full">
+                <p>Initializing AI...</p>
+            </div>
+         )}
       </div>
       
-      <div className="w-1/4">
-        {/* Placeholder for future tools or info panels */}
+      <div className="w-1/4 bg-gray-900/50 backdrop-blur-sm border border-gray-700/50 rounded-lg p-6 shadow-lg shadow-black/20">
+        <h3 className="text-lg font-bold mb-4">Panel de Herramientas</h3>
+        <p className="text-gray-400 text-sm">Próximamente: Funcionalidades avanzadas y programas de estudio.</p>
       </div>
     </main>
   );
