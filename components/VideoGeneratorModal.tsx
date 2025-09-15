@@ -1,36 +1,76 @@
-import React, { useState, useRef } from 'react';
-import { GoogleGenAI } from '@google/genai';
+import React, { useState, useEffect, useRef } from 'react';
+// Fix: Import necessary types and classes from @google/genai
+import { GoogleGenAI, VideosOperation } from '@google/genai';
 import VideoIcon from './icons/VideoIcon';
 import NexusLogo from './icons/NexusLogo';
+
+// Fix: Initialize the GoogleGenAI client
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
 
 interface VideoGeneratorModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-type GenerationState = 'idle' | 'generating' | 'polling' | 'success' | 'error';
+const progressMessages = [
+    "Contactando los servidores de video...",
+    "Calentando los núcleos de la IA...",
+    "Traduciendo tu idea en fotogramas...",
+    "Renderizando el primer borrador...",
+    "Aplicando mejoras de color y luz...",
+    "Esto está tomando un poco más de lo esperado, ¡la IA está trabajando duro!",
+    "Compilando los fotogramas finales...",
+    "Casi listo...",
+];
 
 const VideoGeneratorModal: React.FC<VideoGeneratorModalProps> = ({ isOpen, onClose }) => {
   const [prompt, setPrompt] = useState('');
-  const [state, setState] = useState<GenerationState>('idle');
-  const [progressMessage, setProgressMessage] = useState('');
-  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generatedVideoUrl, setGeneratedVideoUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  
-  const pollingInterval = 10000; // 10 seconds
+  const [progressMessage, setProgressMessage] = useState('');
+
+  const operationRef = useRef<VideosOperation | null>(null);
+  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    if (isGenerating) {
+        let messageIndex = 0;
+        setProgressMessage(progressMessages[messageIndex]);
+        progressIntervalRef.current = setInterval(() => {
+            messageIndex = (messageIndex + 1) % progressMessages.length;
+            setProgressMessage(progressMessages[messageIndex]);
+        }, 5000);
+    } else {
+        if (progressIntervalRef.current) {
+            clearInterval(progressIntervalRef.current);
+        }
+    }
+    return () => {
+      if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+    };
+  }, [isGenerating]);
+
+
+  const pollOperation = async (op: VideosOperation) => {
+    let currentOp = op;
+    while (!currentOp.done) {
+      await new Promise(resolve => setTimeout(resolve, 10000));
+      // Correct polling as per documentation
+      currentOp = await ai.operations.getVideosOperation({ operation: currentOp });
+      operationRef.current = currentOp;
+    }
+    return currentOp;
+  };
 
   const handleGenerate = async () => {
     if (!prompt.trim()) return;
-    
-    setState('generating');
-    setProgressMessage('Enviando solicitud al modelo de video...');
+    setIsGenerating(true);
     setError(null);
-    setVideoUrl(null);
-    
+    setGeneratedVideoUrl(null);
+
     try {
-      // FIX: Correctly initialize the Gemini AI client.
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      // FIX: Use generateVideos for video generation.
+      // Fix: Use correct model 'veo-2.0-generate-001'
       let operation = await ai.models.generateVideos({
         model: 'veo-2.0-generate-001',
         prompt: prompt,
@@ -38,111 +78,78 @@ const VideoGeneratorModal: React.FC<VideoGeneratorModalProps> = ({ isOpen, onClo
           numberOfVideos: 1,
         },
       });
-
-      setState('polling');
-      setProgressMessage('La IA está generando tu video. Esto puede tardar varios minutos. ¡La paciencia es una virtud!');
+      operationRef.current = operation;
       
-      // FIX: Implement polling to check operation status.
-      while (!operation.done) {
-        await new Promise(resolve => setTimeout(resolve, pollingInterval));
-        operation = await ai.operations.getVideosOperation({ operation });
-        setProgressMessage('El video se está procesando en la nube. ¡Casi listo!');
-      }
+      operation = await pollOperation(operation);
 
       const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
       if (downloadLink) {
-        // FIX: Append API key to the download URI for authorization.
-        const finalUrl = `${downloadLink}&key=${process.env.API_KEY}`;
-        setVideoUrl(finalUrl);
-        setState('success');
-        setProgressMessage('¡Video generado con éxito!');
+        // As per docs, must append API key for access.
+        const videoUrl = `${downloadLink}&key=${process.env.API_KEY}`;
+        setGeneratedVideoUrl(videoUrl);
       } else {
-        throw new Error('No se encontró un enlace de video en la respuesta.');
+        throw new Error('Video generation finished but no video URI was found.');
       }
-    } catch (err) {
-      console.error('Error generating video:', err);
-      setError('Ocurrió un error al generar el video. Por favor, intenta de nuevo.');
-      setState('error');
+    } catch (e) {
+      console.error("Error generating video:", e);
+      setError("Failed to generate video. The model might be busy or the prompt could be invalid.");
+    } finally {
+      setIsGenerating(false);
+      operationRef.current = null;
     }
-  };
-
-  const handleClose = () => {
-    onClose();
-    // Reset state after a delay to allow for closing animation
-    setTimeout(() => {
-        setState('idle');
-        setPrompt('');
-        setVideoUrl(null);
-        setError(null);
-        setProgressMessage('');
-    }, 300);
   };
 
   if (!isOpen) return null;
 
   return (
-     <div 
-      className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center backdrop-blur-sm"
-      onClick={handleClose}
-    >
-      <div 
-        className="bg-gray-800 border border-gray-700/50 rounded-xl shadow-2xl shadow-black/50 w-full max-w-2xl m-4 text-white transform transition-all animate-fadeInUp"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center backdrop-blur-sm" onClick={onClose}>
+      <div className="bg-gray-800 border border-cyan-500/50 rounded-xl shadow-2xl w-full max-w-lg m-4 text-white" onClick={(e) => e.stopPropagation()}>
         <div className="p-8">
-            <div className="flex items-center mb-6">
-                 <VideoIcon className="w-8 h-8 text-cyan-400 mr-4"/>
-                 <div>
-                    <h2 className="text-2xl font-bold">Generador de Video</h2>
-                    <p className="text-gray-400">Crea un video a partir de una descripción de texto.</p>
-                 </div>
-            </div>
+            <h2 className="text-2xl font-bold text-center mb-2">Generador de Video</h2>
+            <p className="text-center text-gray-400 mb-6">Transforma texto en un video corto.</p>
             
-            {state === 'success' && videoUrl ? (
-                <div className="text-center">
-                    <video src={videoUrl} controls autoPlay className="w-full rounded-lg mb-4 bg-black"></video>
-                    <a href={videoUrl} download="nexus-sapiens-video.mp4" className="text-cyan-400 hover:underline">Descargar Video</a>
-                </div>
-            ) : (
-                <>
-                    <textarea
-                        value={prompt}
-                        onChange={(e) => setPrompt(e.target.value)}
-                        placeholder="Ej: Un astronauta montando a caballo en Marte, estilo cinematográfico."
-                        className="w-full h-24 bg-gray-900 border border-gray-600 rounded-lg p-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 resize-none"
-                        disabled={state === 'generating' || state === 'polling'}
-                    />
-                    <button
-                        onClick={handleGenerate}
-                        disabled={!prompt.trim() || state === 'generating' || state === 'polling'}
-                        className="mt-4 w-full bg-cyan-600 hover:bg-cyan-500 disabled:bg-gray-600 text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition-colors"
-                    >
-                        {(state === 'generating' || state === 'polling') ? <NexusLogo className="w-5 h-5 animate-spin" /> : <VideoIcon className="w-5 h-5" />}
-                        <span>{state === 'idle' || state === 'error' ? 'Generar Video' : 'Generando...'}</span>
-                    </button>
-                </>
+            {!isGenerating && !generatedVideoUrl && (
+              <>
+                <textarea
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  placeholder="Ej: Un astronauta montando un caballo en marte, cinemático..."
+                  className="w-full h-24 bg-gray-900 border border-gray-600 rounded-lg p-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 resize-none"
+                />
+                <button
+                  onClick={handleGenerate}
+                  disabled={!prompt.trim()}
+                  className="mt-4 w-full bg-cyan-600 hover:bg-cyan-500 disabled:bg-gray-600 text-white font-bold py-3 rounded-lg transition-colors"
+                >
+                  Generar Video
+                </button>
+              </>
             )}
 
-            {(state === 'generating' || state === 'polling') && (
-                <div className="mt-4 text-center bg-gray-700/50 p-4 rounded-lg">
-                    <p className="text-cyan-300">{progressMessage}</p>
+            {isGenerating && (
+                <div className="text-center p-8">
+                    <NexusLogo className="w-16 h-16 text-cyan-400 mx-auto animate-spin mb-4" />
+                    <p className="text-lg font-semibold">Generando video...</p>
+                    <p className="text-gray-400 mt-2 min-h-[40px]">{progressMessage}</p>
                 </div>
             )}
-            {state === 'error' && <p className="mt-4 text-center text-red-400">{error}</p>}
-        </div>
-         <div className="p-4 bg-gray-900/50 rounded-b-xl flex justify-end gap-4">
-             <button onClick={handleClose} className="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">Cerrar</button>
+
+            {generatedVideoUrl && (
+                <div className="text-center">
+                    <h3 className="text-xl font-bold mb-4">¡Video generado!</h3>
+                    <video src={generatedVideoUrl} controls autoPlay className="w-full rounded-lg" />
+                     <button
+                        onClick={() => { setGeneratedVideoUrl(null); setPrompt(''); }}
+                        className="mt-4 w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-3 rounded-lg transition-colors"
+                        >
+                        Crear Otro Video
+                    </button>
+                </div>
+            )}
+
+            {error && <p className="mt-4 text-red-400 text-center">{error}</p>}
         </div>
       </div>
-       <style>{`
-        @keyframes fadeInUp {
-          from { opacity: 0; transform: translateY(20px) scale(0.95); }
-          to { opacity: 1; transform: translateY(0) scale(1); }
-        }
-        .animate-fadeInUp {
-          animation: fadeInUp 0.3s ease-out forwards;
-        }
-      `}</style>
     </div>
   );
 };
