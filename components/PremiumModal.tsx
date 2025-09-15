@@ -8,7 +8,8 @@ interface PremiumModalProps {
   onLearnMore: () => void;
 }
 
-const PremiumModal: React.FC<PremiumModalProps> = ({ onClose, onUnlockAccelerator, onLearnMore }) => {
+// FIX: Destructure and use the 'onUnlockOdyssey' prop, and update the component to offer both premium programs.
+const PremiumModal: React.FC<PremiumModalProps> = ({ onClose, onUnlockAccelerator, onUnlockOdyssey, onLearnMore }) => {
   return (
     <div
       className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4 backdrop-blur-sm"
@@ -22,7 +23,7 @@ const PremiumModal: React.FC<PremiumModalProps> = ({ onClose, onUnlockAccelerato
           <div className="inline-block p-3 bg-cyan-400/10 rounded-full border border-cyan-500/30 mb-4">
             <StarIcon className="w-8 h-8 text-cyan-400" />
           </div>
-          <h2 className="text-3xl font-bold text-center mb-2">Accede al Acelerador Sapiens</h2>
+          <h2 className="text-3xl font-bold text-center mb-2">Programas Premium</h2>
           <p className="text-center text-gray-400 mb-6">
             Desbloquea programas de élite y herramientas de IA para una evolución sin precedentes.
           </p>
@@ -30,16 +31,22 @@ const PremiumModal: React.FC<PremiumModalProps> = ({ onClose, onUnlockAccelerato
 
         <div className="space-y-4">
              <button
+                onClick={onUnlockAccelerator}
+                className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white font-bold py-3 px-6 rounded-lg transition-transform transform hover:scale-105 shadow-lg shadow-cyan-500/30"
+              >
+                Desbloquear Acelerador por $49
+            </button>
+             <button
+                onClick={onUnlockOdyssey}
+                className="w-full bg-yellow-500 hover:bg-yellow-400 text-gray-900 font-bold py-3 px-6 rounded-lg transition-transform transform hover:scale-105 shadow-lg shadow-yellow-500/30"
+              >
+                Forjar Odisea por $99
+            </button>
+             <button
                 onClick={onLearnMore}
                 className="w-full bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-lg transition-colors duration-200"
               >
                 Saber Más sobre los Programas
-            </button>
-             <button
-                onClick={onUnlockAccelerator}
-                className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white font-bold py-3 px-6 rounded-lg transition-transform transform hover:scale-105 shadow-lg shadow-cyan-500/30"
-              >
-                Desbloquear por $49 USD
             </button>
         </div>
       </div>

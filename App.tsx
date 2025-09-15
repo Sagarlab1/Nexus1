@@ -1,221 +1,245 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { GoogleGenAI, Chat } from '@google/genai';
+import type { Message, Agent, Rank } from './types';
+import { AGENTS, RANKS } from './constants';
 import ChatWindow from './components/ChatWindow';
 import AgentPanel from './components/AgentPanel';
 import UserRankPanel from './components/UserRankPanel';
 import LoginScreen from './components/LoginScreen';
 import ApiKeyPrompt from './components/ApiKeyPrompt';
-import ProgramsPage from './components/ProgramsPage';
 import ChallengesPage from './components/ChallengesPage';
-import LatinoChallengesPage from './components/LatinoChallengesPage';
-import OdysseyGenerator from './components/OdysseyGenerator';
-import LibraryModal from './components/LibraryModal';
-import { AGENTS, RANKS } from './constants';
-import type { Message, Agent, Rank } from './types';
-// FIX: Import `PremiumModal` to resolve reference error.
 import PremiumModal from './components/PremiumModal';
+import LibraryModal from './components/LibraryModal';
+import LatinoChallengesPage from './components/LatinoChallengesPage';
+import ProgramsPage from './components/ProgramsPage';
+import OdysseyGenerator from './components/OdysseyGenerator';
+import VideoGeneratorModal from './components/VideoGeneratorModal';
 
-// Add minimal type definition for the Web Speech API
-interface SpeechRecognition {
-  lang: string;
-  interimResults: boolean;
-  continuous: boolean;
-  start(): void;
-  stop(): void;
-  onresult: (event: any) => void;
-  onend: () => void;
-  onerror: (event: any) => void;
-  // FIX: Added 'onstart' property to satisfy usage in 'handleToggleListening'.
-  onstart: () => void;
+declare global {
+    interface Window {
+        SpeechRecognition: any;
+        webkitSpeechRecognition: any;
+    }
 }
 
-const API_KEY = process.env.API_KEY;
 
-let ai: GoogleGenAI | null = null;
-if (API_KEY) {
-  ai = new GoogleGenAI({ apiKey: API_KEY });
-}
-
-function App() {
+const App: React.FC = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [view, setView] = useState<'chat' | 'challenges' | 'latino-challenges' | 'programs' | 'odyssey-generator'>('chat');
+  
+  const [messages, setMessages] = useState<Message[]>([]);
   const [activeAgent, setActiveAgent] = useState<Agent>(AGENTS[0]);
-  const [messages, setMessages] = useState<Record<string, Message[]>>({});
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [activeView, setActiveView] = useState('dashboard');
-  
-  // Premium & Feature States
-  const [isPremium, setIsPremium] = useState(false);
-  const [isOdyssey, setIsOdyssey] = useState(false);
-  const [isLibraryOpen, setIsLibraryOpen] = useState(false);
-  const [isPremiumModalOpen, setIsPremiumModalOpen] = useState(false);
+  const [userXp, setUserXp] = useState(0); // Dummy XP state
   const [currentRank, setCurrentRank] = useState<Rank>(RANKS[0]);
+  
+  const [isPremiumModalOpen, setIsPremiumModalOpen] = useState(false);
+  const [isLibraryModalOpen, setIsLibraryModalOpen] = useState(false);
+  const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
 
-
-  const chatInstances = useRef<Record<string, Chat>>({});
-  const stopGenerationRef = useRef(false);
-
-  // Speech synthesis and recognition state
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const recognitionRef = useRef<any>(null);
 
-  const speak = useCallback((text: string) => {
+  const chatRef = useRef<Chat | null>(null);
+  const stopGenerationRef = useRef<boolean>(false);
+  
+  const API_KEY = process.env.API_KEY;
+
+  useEffect(() => {
+    const newRank = RANKS.slice().reverse().find(r => userXp >= r.minXp) || RANKS[0];
+    setCurrentRank(newRank);
+  }, [userXp]);
+
+  const initializeChat = useCallback(() => {
+    if (!API_KEY) return;
+    const ai = new GoogleGenAI({ apiKey: API_KEY });
+    const personalityPrompt = activeAgent.personalities.find(p => p.id === 'default')?.prompt || 'You are a helpful assistant.';
+    chatRef.current = ai.chats.create({
+      model: 'gemini-2.5-flash',
+      config: {
+        systemInstruction: personalityPrompt,
+      }
+    });
+  }, [activeAgent, API_KEY]);
+
+  useEffect(() => {
+    initializeChat();
+    setMessages([]); // Reset messages when agent changes
+  }, [activeAgent, initializeChat]);
+
+  const speak = (text: string) => {
     if ('speechSynthesis' in window) {
-      speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
+      window.speechSynthesis.cancel(); // Cancel any previous speech
+      const utterance = new SpeechSynthesisUtterance(text.replace(/\*/g, ''));
       utterance.lang = 'es-ES';
       utterance.onstart = () => setIsSpeaking(true);
       utterance.onend = () => setIsSpeaking(false);
-      utterance.onerror = () => setIsSpeaking(false);
-      speechSynthesis.speak(utterance);
-    }
-  }, []);
-
-  const handleStopSpeaking = () => {
-    if ('speechSynthesis' in window) {
-      speechSynthesis.cancel();
-      setIsSpeaking(false);
+      window.speechSynthesis.speak(utterance);
     }
   };
 
-  const getOrCreateChat = useCallback((agent: Agent) => {
-    if (!ai) return null;
-    if (!chatInstances.current[agent.id]) {
-      chatInstances.current[agent.id] = ai.chats.create({
-        model: 'gemini-2.5-flash',
-        config: { systemInstruction: agent.personalities[0].prompt },
-      });
-    }
-    return chatInstances.current[agent.id];
-  }, []);
-
   const handleSendMessage = useCallback(async () => {
-    if (!input.trim() || !ai) return;
+    if (!input.trim() || !chatRef.current) return;
 
-    const currentInput = input;
-    const agentId = activeAgent.id;
-    const userMessage: Message = { id: Date.now(), text: currentInput, sender: 'user' };
-
-    handleStopSpeaking();
-    setMessages(prev => ({ ...prev, [agentId]: [...(prev[agentId] || []), userMessage] }));
+    const userMessage: Message = { id: Date.now(), text: input, sender: 'user' };
+    setMessages(prev => [...prev, userMessage]);
     setInput('');
     setIsLoading(true);
     stopGenerationRef.current = false;
 
     const agentMessageId = Date.now() + 1;
-    const agentMessage: Message = { id: agentMessageId, text: '', sender: 'agent' };
-    setMessages(prev => ({ ...prev, [agentId]: [...(prev[agentId] || []), agentMessage] }));
+    setMessages(prev => [...prev, { id: agentMessageId, text: '', sender: 'agent' }]);
+    
+    let fullResponseText = '';
 
     try {
-      const chat = getOrCreateChat(activeAgent);
-      if (!chat) throw new Error("Chat not initialized");
-      
-      const stream = await chat.sendMessageStream({ message: currentInput });
+      const stream = await chatRef.current.sendMessageStream({ message: input });
 
-      let fullResponse = '';
       for await (const chunk of stream) {
         if (stopGenerationRef.current) break;
-        fullResponse += chunk.text;
-        setMessages(prev => ({
-          ...prev,
-          [agentId]: prev[agentId].map(m => m.id === agentMessageId ? { ...m, text: fullResponse } : m)
-        }));
+        const chunkText = chunk.text;
+        fullResponseText += chunkText;
+        setMessages(prev =>
+          prev.map(msg =>
+            msg.id === agentMessageId ? { ...msg, text: fullResponseText } : msg
+          )
+        );
       }
-      speak(fullResponse.replace(/\*/g, ''));
+      if (!stopGenerationRef.current) {
+        speak(fullResponseText);
+      }
 
     } catch (error) {
-      console.error("Error sending message:", error);
-      const errorMessage = "Lo siento, he encontrado un error. Por favor, inténtalo de nuevo.";
-      setMessages(prev => ({
-        ...prev,
-        [agentId]: prev[agentId].map(m => m.id === agentMessageId ? { ...m, text: errorMessage } : m)
-      }));
-       speak(errorMessage);
+      console.error('Error sending message:', error);
+      const errorMessage = 'Lo siento, he encontrado un error.';
+      setMessages(prev =>
+        prev.map(msg =>
+          msg.id === agentMessageId ? { ...msg, text: errorMessage } : msg
+        )
+      );
+      speak(errorMessage);
     } finally {
       setIsLoading(false);
     }
-  }, [input, activeAgent, getOrCreateChat, speak]);
-
+  }, [input]);
+  
   const handleStopGeneration = () => {
     stopGenerationRef.current = true;
     setIsLoading(false);
   };
-  
+
   const handleToggleListening = () => {
-     if (isListening) {
+    if (isListening) {
       recognitionRef.current?.stop();
+      setIsListening(false);
     } else {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (SpeechRecognition) {
-        const recognition: SpeechRecognition = new SpeechRecognition();
-        recognition.lang = 'es-ES';
-        recognition.interimResults = true;
-        recognition.continuous = false;
-        recognition.onstart = () => setIsListening(true);
-        recognition.onresult = (event) => setInput(event.results[0][0].transcript);
-        recognition.onend = () => setIsListening(false);
-        recognition.onerror = () => setIsListening(false);
-        recognition.start();
-        recognitionRef.current = recognition;
+        recognitionRef.current = new SpeechRecognition();
+        recognitionRef.current.continuous = false;
+        recognitionRef.current.interimResults = false;
+        recognitionRef.current.lang = 'es-ES';
+        
+        recognitionRef.current.onstart = () => setIsListening(true);
+        recognitionRef.current.onend = () => setIsListening(false);
+        recognitionRef.current.onerror = (event: any) => {
+          console.error('Speech recognition error:', event.error);
+          setIsListening(false);
+        };
+        recognitionRef.current.onresult = (event: any) => {
+          const transcript = event.results[0][0].transcript;
+          setInput(transcript);
+        };
+        recognitionRef.current.start();
+      } else {
+        alert('Speech recognition is not supported in your browser.');
       }
     }
   };
 
+  const handleStopSpeaking = () => {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+  };
 
-  if (!API_KEY) return <ApiKeyPrompt />;
-  if (!isLoggedIn) return <LoginScreen onLogin={() => setIsLoggedIn(true)} />;
 
+  if (!API_KEY) {
+    return <ApiKeyPrompt />;
+  }
+
+  if (!isLoggedIn) {
+    return <LoginScreen onLogin={() => setIsLoggedIn(true)} />;
+  }
+  
   const renderView = () => {
-    switch(activeView) {
-      case 'programs': return <ProgramsPage onUnlockAccelerator={() => {setIsPremium(true); alert("Acelerador Desbloqueado!"); setActiveView('dashboard');}} onUnlockOdyssey={() => {setIsOdyssey(true); setIsPremium(true); alert("Odisea Desbloqueada!"); setActiveView('dashboard');}} />;
-      case 'challenges': return <ChallengesPage onBack={() => setActiveView('dashboard')} currentRank={currentRank} />;
-      case 'latino_challenges': return <LatinoChallengesPage onBack={() => setActiveView('dashboard')} />;
-      case 'odyssey': return <OdysseyGenerator onBack={() => setActiveView('dashboard')} />;
-      case 'dashboard':
-      default:
-        return (
-          <div className="container mx-auto grid grid-cols-1 lg:grid-cols-12 gap-4 h-[calc(100vh-2rem)]">
-            <div className="lg:col-span-3 space-y-4 flex flex-col">
-              <UserRankPanel rank={currentRank.name} onHomeClick={() => setActiveView('dashboard')} />
-              <div className="flex-grow">
-                <AgentPanel agents={AGENTS} activeAgent={activeAgent} onSelectAgent={setActiveAgent} />
-              </div>
-            </div>
-            <div className="lg:col-span-9">
-              <ChatWindow
-                messages={messages[activeAgent.id] || []}
-                activeAgent={activeAgent}
-                onSendMessage={handleSendMessage}
-                isLoading={isLoading}
-                onStopGeneration={handleStopGeneration}
-                input={input}
-                setInput={setInput}
-                isListening={isListening}
-                onToggleListening={handleToggleListening}
-                isSpeaking={isSpeaking}
-                onStopSpeaking={handleStopSpeaking}
-              />
-            </div>
-          </div>
-        );
-    }
+      switch(view) {
+          case 'chat':
+              return (
+                 <ChatWindow
+                    messages={messages}
+                    activeAgent={activeAgent}
+                    onSendMessage={handleSendMessage}
+                    isLoading={isLoading}
+                    onStopGeneration={handleStopGeneration}
+                    input={input}
+                    setInput={setInput}
+                    isListening={isListening}
+                    onToggleListening={handleToggleListening}
+                    isSpeaking={isSpeaking}
+                    onStopSpeaking={handleStopSpeaking}
+                  />
+              );
+          case 'challenges':
+              return <ChallengesPage onBack={() => setView('chat')} currentRank={currentRank} />;
+          case 'latino-challenges':
+              return <LatinoChallengesPage onBack={() => setView('chat')} />;
+          case 'programs':
+              return <ProgramsPage onUnlockAccelerator={() => setView('challenges')} onUnlockOdyssey={() => setView('odyssey-generator')} />;
+          case 'odyssey-generator':
+              return <OdysseyGenerator onBack={() => setView('programs')} />;
+      }
   };
 
   return (
-    <main className="bg-gray-800 text-white min-h-screen p-4" style={{ backgroundImage: `radial-gradient(circle at 10% 20%, rgb(30, 41, 59) 0%, rgb(17, 24, 39) 90%)` }}>
-      {renderView()}
-      {isLibraryOpen && <LibraryModal onClose={() => setIsLibraryOpen(false)} onSelectLatinoChallenges={() => {setIsLibraryOpen(false); setActiveView('latino_challenges');}} />}
-      {isPremiumModalOpen && <PremiumModal onClose={() => setIsPremiumModalOpen(false)} onLearnMore={() => {setIsPremiumModalOpen(false); setActiveView('programs');}} onUnlockAccelerator={() => {setIsPremium(true); alert("Acelerador Desbloqueado!"); setIsPremiumModalOpen(false);}} onUnlockOdyssey={() => {setIsOdyssey(true); setIsPremium(true); alert("Odisea Desbloqueada!"); setIsPremiumModalOpen(false);}} />}
-    </main>
+    <div className="bg-gray-900 text-white min-h-screen font-sans bg-cover bg-center" style={{ backgroundImage: "url('/background.png')"}}>
+      <div className="container mx-auto p-4">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div className="lg:col-span-1 space-y-4">
+            <UserRankPanel rank={currentRank.name} onHomeClick={() => setView('chat')} />
+            <AgentPanel
+              agents={AGENTS}
+              activeAgent={activeAgent}
+              onSelectAgent={setActiveAgent}
+            />
+             <div className="bg-gray-900/50 backdrop-blur-sm border border-gray-700/50 rounded-lg p-6 shadow-lg shadow-black/20">
+                <button onClick={() => setIsPremiumModalOpen(true)} className="w-full text-white font-bold py-2 px-4 rounded bg-cyan-600 hover:bg-cyan-500">Programas Premium</button>
+                <button onClick={() => setIsLibraryModalOpen(true)} className="w-full text-white font-bold py-2 px-4 rounded mt-2 bg-purple-600 hover:bg-purple-500">Biblioteca</button>
+                <button onClick={() => setIsVideoModalOpen(true)} className="w-full text-white font-bold py-2 px-4 rounded mt-2 bg-green-600 hover:bg-green-500">Generador de Video</button>
+             </div>
+          </div>
+          <main className="lg:col-span-2">
+            {renderView()}
+          </main>
+        </div>
+      </div>
+      {isPremiumModalOpen && <PremiumModal 
+        onClose={() => setIsPremiumModalOpen(false)} 
+        onUnlockAccelerator={() => { setView('challenges'); setIsPremiumModalOpen(false); }}
+        onLearnMore={() => { setView('programs'); setIsPremiumModalOpen(false); }}
+        // FIX: Added 'onUnlockOdyssey' prop to handle navigation to the Odyssey generator from the premium modal.
+        onUnlockOdyssey={() => { setView('odyssey-generator'); setIsPremiumModalOpen(false); }}
+        />}
+      {isLibraryModalOpen && <LibraryModal 
+        onClose={() => setIsLibraryModalOpen(false)} 
+        onSelectLatinoChallenges={() => { setView('latino-challenges'); setIsLibraryModalOpen(false); }}
+        />}
+       {isVideoModalOpen && <VideoGeneratorModal
+        onClose={() => setIsVideoModalOpen(false)}
+        />}
+    </div>
   );
-}
-
-declare global {
-  interface Window {
-    SpeechRecognition: { new (): SpeechRecognition };
-    webkitSpeechRecognition: { new (): SpeechRecognition };
-  }
-}
+};
 
 export default App;
