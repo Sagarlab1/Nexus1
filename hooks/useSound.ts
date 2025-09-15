@@ -1,19 +1,15 @@
-// FIX: Replaced corrupted file content with a valid module.
-// This placeholder implementation resolves the module loading errors.
+// FIX: Implement the useSound hook to resolve module errors.
 import { useCallback } from 'react';
 
-// The sound types used in the application.
-type SoundType = 'select' | 'send' | 'unlock' | 'rankUp';
-
 /**
- * Custom hook to play sounds.
- * NOTE: This is a placeholder implementation to resolve module errors.
- * It does not actually play any audio.
+ * A dummy hook for playing sounds.
+ * In a real application, you might use a library like 'howler' or 'use-sound'.
+ * For now, it returns a no-op function to prevent crashes.
  */
 export const useSound = () => {
-  const playSound = useCallback((_sound: SoundType) => {
-    // In a real application, you would implement audio playback here,
-    // for example using the Web Audio API.
+  const playSound = useCallback((sound: string) => {
+    // Placeholder function. No sound will be played.
+    // console.log(`Playing sound: ${sound}`);
   }, []);
 
   return playSound;

@@ -1,5 +1,5 @@
 import React from 'react';
-import type { Agent, Rank, Challenge, Odyssey, WeekPlan, Skill } from './types';
+import type { Agent, Rank } from './types';
 import BrainIcon from './components/icons/BrainIcon';
 import BulbIcon from './components/icons/BulbIcon';
 import CodeIcon from './components/icons/CodeIcon';
@@ -55,43 +55,4 @@ export const RANKS: Rank[] = [
     { name: 'Arquitecto Neuronal', minXp: 600, icon: '...'},
     { name: 'Sintetizador de Realidad', minXp: 1000, icon: '...'},
     { name: 'Nexus Sapiens', minXp: 1500, icon: '...'},
-];
-
-export const INITIAL_CHALLENGES: Challenge[] = [
-    { id: 'c1', title: 'Tu Primer Diálogo', description: 'Inicia una conversación con cualquier agente de IA.', xp: 10, category: 'Mente', isCompleted: false },
-    { id: 'c2', title: 'Explora los Agentes', description: 'Habla con al menos 3 agentes diferentes.', xp: 20, category: 'Mente', isCompleted: false },
-    { id: 'c3', title: 'Meditación Guiada', description: 'Pídele al Mentor que te guíe en una meditación de 5 minutos.', xp: 30, category: 'Espíritu', isCompleted: false },
-    { id: 'c4', title: 'Plan de Ejercicio', description: 'Pídele al Mentor un plan de ejercicios para una semana.', xp: 30, category: 'Cuerpo', isCompleted: false },
-];
-
-export const INITIAL_ODYSSEYS: Odyssey[] = [
-    {
-        id: 'o1',
-        title: 'El Despertar del Estratega',
-        description: 'Domina los fundamentos del pensamiento crítico y la resolución de problemas con Strategos.',
-        steps: [
-            { title: 'Define un problema claramente', completed: false },
-            { title: 'Analiza sus componentes', completed: false },
-            { title: 'Genera 3 posibles soluciones', completed: false },
-            { title: 'Evalúa pros y contras', completed: false },
-            { title: 'Elige un plan de acción', completed: false },
-        ]
-    }
-];
-
-export const INITIAL_WEEK_PLAN: WeekPlan = {
-    week: 1,
-    title: 'Fundamentos de la Mente Aumentada',
-    focus: 'Establecer una rutina de interacción y exploración con la IA para expandir el pensamiento.',
-    challenge: 'Completa 3 desafíos iniciales y comienza tu primera Odisea.'
-};
-
-export const SKILLS: Skill[] = [
-    { name: 'Análisis de Sistemas', category: 'Pensamiento Estratégico' },
-    { name: 'Resolución de Problemas Complejos', category: 'Pensamiento Estratégico' },
-    { name: 'Toma de Decisiones Basada en Datos', category: 'Pensamiento Estratégico' },
-    { name: 'Brainstorming Divergente', category: 'Innovación y Creatividad' },
-    { name: 'Prototipado Rápido de Ideas', category: 'Innovación y Creatividad' },
-    { name: 'Comunicación Asertiva', category: 'Liderazgo y Comunicación' },
-    { name: 'Feedback Constructivo', category: 'Liderazgo y Comunicación' },
 ];
