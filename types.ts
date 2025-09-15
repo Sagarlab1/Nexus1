@@ -1,3 +1,4 @@
+
 import type React from 'react';
 
 export interface Message {
@@ -57,4 +58,9 @@ export interface WeekPlan {
 export interface Skill {
   name: string;
   category: 'Pensamiento Estratégico' | 'Innovación y Creatividad' | 'Liderazgo y Comunicación';
+}
+// FIX: Add LatinoChallengeCategory interface to resolve module export error.
+export interface LatinoChallengeCategory {
+  category: string;
+  challenges: string[];
 }

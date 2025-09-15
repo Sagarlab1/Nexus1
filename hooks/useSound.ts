@@ -1,16 +1,13 @@
-// FIX: Implement the useSound hook to resolve module errors.
 import { useCallback } from 'react';
 
-/**
- * A dummy hook for playing sounds.
- * In a real application, you might use a library like 'howler' or 'use-sound'.
- * For now, it returns a no-op function to prevent crashes.
- */
+// FIX: Implement the useSound hook to resolve the module error.
+// This is a placeholder for sound playing functionality. In a real app, this could be
+// implemented with the Web Audio API or a library like 'howler.js'.
 export const useSound = () => {
-  const playSound = useCallback((sound: string) => {
-    // Placeholder function. No sound will be played.
-    // console.log(`Playing sound: ${sound}`);
+  const play = useCallback((sound: string) => {
+    // eslint-disable-next-line no-console
+    console.log(`Playing sound: ${sound}`);
   }, []);
 
-  return playSound;
+  return play;
 };
