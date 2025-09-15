@@ -1,1 +1,2 @@
-full contents of VideoGeneratorModal.tsx
+import VideoGeneratorModal from './components/VideoGeneratorModal';
+export default VideoGeneratorModal;

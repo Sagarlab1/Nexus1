@@ -1,1 +1,2 @@
-full contents of OdysseyGenerator.tsx
+import OdysseyGenerator from './components/OdysseyGenerator';
+export default OdysseyGenerator;

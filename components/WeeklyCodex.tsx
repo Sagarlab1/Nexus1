@@ -1,8 +1,11 @@
-// FIX: Implement WeeklyCodex component to resolve module not found error.
 import React, { useState, useEffect } from 'react';
-import { GoogleGenAI } from '@google/genai';
+// FIX: Import GoogleGenAI from the correct package
+import { GoogleGenAI } from "@google/genai";
 import { ACCELERATOR_PROGRAM } from '../constants';
 import NexusLogo from './icons/NexusLogo';
+
+// FIX: Initialize Gemini API client as per guidelines
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
 
 interface WeeklyCodexProps {
   week: number;
@@ -11,54 +14,56 @@ interface WeeklyCodexProps {
 }
 
 const WeeklyCodex: React.FC<WeeklyCodexProps> = ({ week, rank, onBack }) => {
-  const [codex, setCodex] = useState('');
+  const [codexContent, setCodexContent] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
   const weekData = ACCELERATOR_PROGRAM.find(w => w.week === week);
 
   useEffect(() => {
     const generateCodex = async () => {
-      if (!weekData || !process.env.API_KEY) {
-        setCodex("No se pudo generar el códice. Falta información o la API Key.");
+      if (!weekData) {
+        setError("Datos de la semana no encontrados.");
         setIsLoading(false);
         return;
       }
 
-      // FIX: Initialize GoogleGenAI with named apiKey parameter as per guidelines.
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      setIsLoading(true);
+      setError(null);
+      
       const prompt = `
-        **Instrucción de Sistema:**
-        Eres un sabio mentor de la academia "Nexus Sapiens". Tu tarea es generar un "Códice Semanal" para un estudiante.
-        El códice debe ser profundo, accionable y personalizado según el rango del estudiante.
-        
-        **Contexto de la Semana ${weekData.week}:**
-        - **Título:** ${weekData.title}
-        - **Enfoque:** ${weekData.focus}
-        - **Desafío Práctico:** ${weekData.challenge}
-        
-        **Contexto del Estudiante:**
-        - **Rango Actual:** ${rank}
-        
-        **Tu Tarea:**
-        Escribe un códice que contenga las siguientes secciones:
-        1.  **Reflexión Profunda:** Una breve meditación (2-3 párrafos) sobre el 'Enfoque' de la semana, adaptada a la perspectiva de alguien con el rango de '${rank}'.
-        2.  **Sabiduría Clave:** 3-5 puntos clave o "perlas de sabiduría" sobre el tema, presentados como una lista de viñetas.
-        3.  **Guía para el Desafío:** Consejos prácticos y detallados para abordar el 'Desafío Práctico' de la semana. Debe ser una guía paso a paso.
-        4.  **Recursos Adicionales:** Sugiere 2-3 recursos (libros, artículos, videos, etc.) para profundizar en el tema.
-        
-        El tono debe ser inspirador, sabio y ligeramente futurista. Formatea la respuesta en Markdown.
+        Eres Nexus, una IA mentora para el programa "Acelerador Sapiens".
+        Genera un "Códice Semanal" para un participante con el rango de "${rank}".
+        El códice debe ser un documento profundo, inspirador y accionable.
+
+        Semana: ${weekData.week}
+        Título: "${weekData.title}"
+        Enfoque Principal: "${weekData.focus}"
+        Desafío Práctico: "${weekData.challenge}"
+
+        Estructura del Códice (usa markdown con ** para negritas):
+        1.  **Introducción Filosófica:** Una reflexión corta pero potente sobre la importancia del tema de la semana (${weekData.focus}), conectándolo con el desarrollo personal y profesional.
+        2.  **Conceptos Clave (Profundización):** Explica los 2-3 conceptos más importantes del enfoque de la semana. Usa analogías y ejemplos claros. Adapta la profundidad al rango de "${rank}". Para un rango bajo, sé más introductorio. Para un rango alto, introduce matices más complejos.
+        3.  **Guía para el Desafío Práctico:** Ofrece una guía paso a paso, consejos y posibles escollos a evitar para completar el desafío: "${weekData.challenge}".
+        4.  **Recursos Adicionales:** Sugiere 2-3 recursos (un libro, un artículo/paper, y un video/podcast) para explorar el tema más a fondo.
+        5.  **Reflexión Final:** Cierra con una pregunta poderosa o una cita inspiradora para que el participante medite durante la semana.
+
+        El tono debe ser sabio, encouraging, y ligeramente formal. El objetivo es empoderar al participante.
       `;
 
       try {
-        // FIX: Use ai.models.generateContent and the 'gemini-2.5-flash' model.
+        // FIX: Use the correct method 'generateContent' and model name 'gemini-2.5-flash'
         const response = await ai.models.generateContent({
           model: 'gemini-2.5-flash',
           contents: prompt,
         });
-        // FIX: Access the generated text directly from the 'text' property.
-        setCodex(response.text);
-      } catch (error) {
-        console.error("Error generating codex:", error);
-        setCodex("Ocurrió un error al generar tu códice semanal. Por favor, intenta de nuevo.");
+        
+        // FIX: Access the generated text directly from the 'text' property
+        setCodexContent(response.text);
+
+      } catch (err) {
+        console.error("Error generating codex:", err);
+        setError("No se pudo generar el códice. Por favor, intenta de nuevo más tarde.");
       } finally {
         setIsLoading(false);
       }
@@ -66,32 +71,34 @@ const WeeklyCodex: React.FC<WeeklyCodexProps> = ({ week, rank, onBack }) => {
 
     generateCodex();
   }, [week, rank, weekData]);
-  
-  if (!weekData) {
-      return (
-          <div className="w-full h-full bg-gray-900 text-white p-8">
-              <p>Semana no encontrada.</p>
-              <button onClick={onBack} className="mt-4 text-cyan-400">&larr; Volver</button>
-          </div>
-      );
-  }
 
   return (
-    <div className="w-full h-full bg-gray-900 text-white p-8 overflow-y-auto">
+    <div className="w-full h-full bg-gray-900 text-white p-8 overflow-y-auto animate-fade-in">
       <div className="max-w-4xl mx-auto">
         <button onClick={onBack} className="mb-8 text-cyan-400 hover:text-cyan-300">&larr; Volver al Acelerador</button>
-        <h1 className="text-4xl font-bold">Códice Semanal {weekData.week}</h1>
-        <p className="text-xl text-gray-400 mb-2">{weekData.title}</p>
-        <p className="text-md text-cyan-400 font-mono mb-8">Personalizado para Rango: {rank}</p>
-
-        {isLoading ? (
-          <div className="flex flex-col items-center justify-center h-64">
-            <NexusLogo className="w-16 h-16 text-cyan-400 animate-spin" />
-            <p className="mt-4 text-gray-300">Generando tu sabiduría semanal...</p>
-          </div>
-        ) : (
-          <div className="prose prose-invert prose-lg max-w-none bg-gray-800/50 p-6 rounded-lg border border-gray-700/50" dangerouslySetInnerHTML={{ __html: codex.replace(/\n/g, '<br />').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
+        {weekData && (
+          <>
+            <p className="text-sm font-mono text-cyan-400">Semana {weekData.week}</p>
+            <h1 className="text-4xl font-bold mt-1 mb-2">Códice: {weekData.title}</h1>
+            <p className="text-lg text-gray-400 mb-8">Un resumen de inteligencia para tu rango de <span className="font-semibold text-cyan-300">{rank}</span>.</p>
+          </>
         )}
+        
+        <div className="bg-gray-800/50 p-6 rounded-lg border border-gray-700/50 min-h-[50vh]">
+          {isLoading && (
+            <div className="flex flex-col items-center justify-center h-full text-center">
+              <NexusLogo className="w-12 h-12 text-cyan-400 animate-spin mb-4" />
+              <p className="text-lg text-gray-300">Generando tu códice semanal...</p>
+              <p className="text-sm text-gray-500">Analizando conceptos clave y adaptando el contenido a tu nivel.</p>
+            </div>
+          )}
+          {error && <p className="text-red-400">{error}</p>}
+          {!isLoading && !error && (
+            <div className="prose prose-invert prose-lg max-w-none whitespace-pre-wrap">
+              {codexContent}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
