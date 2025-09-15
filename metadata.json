@@ -1,0 +1,7 @@
+{
+  "name": "Nexus Sapiens",
+  "description": "An elite online education platform, 'Nexus Sapiens', centered on a primary AI Tutor. The interface features a premium, futuristic, dark theme and interaction with four specialized 'Super Agents' to guide the user's evolution through a dynamic, interactive skill tree.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
