@@ -4,6 +4,8 @@ import { ACCELERATOR_SKILLS } from '../constants';
 import BrainIcon from './icons/BrainIcon';
 import TeamIcon from './icons/TeamIcon';
 import BulbIcon from './icons/BulbIcon';
+// FIX: Import Skill type for better type safety.
+import type { Skill } from '../types';
 
 const categoryIcons = {
   'Pensamiento Estratégico': <BrainIcon className="w-6 h-6 mr-3 text-cyan-400" />,
@@ -12,11 +14,12 @@ const categoryIcons = {
 };
 
 const SkillTree: React.FC = () => {
+  // FIX: Explicitly type the accumulator for the reduce function.
   const skillsByCategory = ACCELERATOR_SKILLS.reduce((acc, skill) => {
     acc[skill.category] = acc[skill.category] || [];
     acc[skill.category].push(skill);
     return acc;
-  }, {} as Record<string, typeof ACCELERATOR_SKILLS>);
+  }, {} as Record<string, Skill[]>);
 
   return (
     <div className="bg-gray-900/50 backdrop-blur-sm border border-gray-700/50 rounded-lg p-6 shadow-lg shadow-black/20">

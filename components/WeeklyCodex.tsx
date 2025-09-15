@@ -1,6 +1,5 @@
-// FIX: Implemented the WeeklyCodex component to resolve module errors.
+// FIX: Implement WeeklyCodex component to resolve module not found error.
 import React, { useState, useEffect } from 'react';
-// FIX: Use GoogleGenAI from "@google/genai"
 import { GoogleGenAI } from '@google/genai';
 import { ACCELERATOR_PROGRAM } from '../constants';
 import NexusLogo from './icons/NexusLogo';
@@ -14,62 +13,52 @@ interface WeeklyCodexProps {
 const WeeklyCodex: React.FC<WeeklyCodexProps> = ({ week, rank, onBack }) => {
   const [codex, setCodex] = useState('');
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState('');
-
   const weekData = ACCELERATOR_PROGRAM.find(w => w.week === week);
 
   useEffect(() => {
     const generateCodex = async () => {
-      if (!weekData) {
-        setError('Datos de la semana no encontrados.');
+      if (!weekData || !process.env.API_KEY) {
+        setCodex("No se pudo generar el códice. Falta información o la API Key.");
         setIsLoading(false);
         return;
       }
 
-      if (!process.env.API_KEY) {
-        setError("API key not found. Please set the API_KEY environment variable.");
-        setIsLoading(false);
-        return;
-      }
+      // FIX: Initialize GoogleGenAI with named apiKey parameter as per guidelines.
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const prompt = `
+        **Instrucción de Sistema:**
+        Eres un sabio mentor de la academia "Nexus Sapiens". Tu tarea es generar un "Códice Semanal" para un estudiante.
+        El códice debe ser profundo, accionable y personalizado según el rango del estudiante.
+        
+        **Contexto de la Semana ${weekData.week}:**
+        - **Título:** ${weekData.title}
+        - **Enfoque:** ${weekData.focus}
+        - **Desafío Práctico:** ${weekData.challenge}
+        
+        **Contexto del Estudiante:**
+        - **Rango Actual:** ${rank}
+        
+        **Tu Tarea:**
+        Escribe un códice que contenga las siguientes secciones:
+        1.  **Reflexión Profunda:** Una breve meditación (2-3 párrafos) sobre el 'Enfoque' de la semana, adaptada a la perspectiva de alguien con el rango de '${rank}'.
+        2.  **Sabiduría Clave:** 3-5 puntos clave o "perlas de sabiduría" sobre el tema, presentados como una lista de viñetas.
+        3.  **Guía para el Desafío:** Consejos prácticos y detallados para abordar el 'Desafío Práctico' de la semana. Debe ser una guía paso a paso.
+        4.  **Recursos Adicionales:** Sugiere 2-3 recursos (libros, artículos, videos, etc.) para profundizar en el tema.
+        
+        El tono debe ser inspirador, sabio y ligeramente futurista. Formatea la respuesta en Markdown.
+      `;
 
       try {
-        // FIX: Initialize GoogleGenAI with a named apiKey object
-        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-        const prompt = `
-          Eres "Stratego", un IA estratega y mentor experto.
-          Tu tarea es generar un "Códice Semanal" para un participante del "Acelerador Sapiens".
-
-          **Contexto del Participante:**
-          - Rango Actual: ${rank}
-          - Semana del Programa: ${week}
-          - Título de la Semana: "${weekData.title}"
-          - Enfoque Principal: "${weekData.focus}"
-          - Desafío Práctico: "${weekData.challenge}"
-
-          **Instrucciones para el Códice:**
-          1.  **Título:** Crea un título inspirador para el códice de esta semana.
-          2.  **Introducción (1 párrafo):** Una breve introducción que conecte el tema de la semana con el crecimiento personal y profesional del participante, ajustando el tono a su rango de '${rank}'.
-          3.  **Conceptos Clave (3-4 bullets):** Explica los conceptos más importantes del enfoque de la semana de manera clara y concisa. Usa analogías o ejemplos simples.
-          4.  **Estrategia para el Desafío (1-2 párrafos):** Ofrece un plan de acción o una estrategia paso a paso para abordar el desafío práctico de la semana. Sé muy concreto y accionable.
-          5.  **Reflexión Profunda (1 pregunta):** Plantea una pregunta poderosa que invite al participante a reflexionar profundamente sobre el tema de la semana y su aplicación personal.
-
-          **Formato de Salida:**
-          Usa Markdown para formatear tu respuesta. Utiliza títulos (##), listas con viñetas (*) y negritas (**) para estructurar el contenido de forma clara y legible.
-          No incluyas el prompt en la respuesta, solo el códice generado.
-        `;
-        
-        // FIX: Use ai.models.generateContent with the correct model name
+        // FIX: Use ai.models.generateContent and the 'gemini-2.5-flash' model.
         const response = await ai.models.generateContent({
           model: 'gemini-2.5-flash',
           contents: prompt,
         });
-
-        // FIX: Access the response text directly via the .text property
+        // FIX: Access the generated text directly from the 'text' property.
         setCodex(response.text);
-
-      } catch (e) {
-        console.error(e);
-        setError('Hubo un error al generar el códice. Por favor, intenta de nuevo.');
+      } catch (error) {
+        console.error("Error generating codex:", error);
+        setCodex("Ocurrió un error al generar tu códice semanal. Por favor, intenta de nuevo.");
       } finally {
         setIsLoading(false);
       }
@@ -77,36 +66,32 @@ const WeeklyCodex: React.FC<WeeklyCodexProps> = ({ week, rank, onBack }) => {
 
     generateCodex();
   }, [week, rank, weekData]);
-
+  
   if (!weekData) {
-    return (
-      <div className="p-8 text-white">
-        <h2 className="text-2xl text-red-500">Error</h2>
-        <p>No se pudieron encontrar los datos para la semana {week}.</p>
-        <button onClick={onBack} className="mt-4 text-cyan-400 hover:text-cyan-300">&larr; Volver</button>
-      </div>
-    );
+      return (
+          <div className="w-full h-full bg-gray-900 text-white p-8">
+              <p>Semana no encontrada.</p>
+              <button onClick={onBack} className="mt-4 text-cyan-400">&larr; Volver</button>
+          </div>
+      );
   }
 
   return (
     <div className="w-full h-full bg-gray-900 text-white p-8 overflow-y-auto">
       <div className="max-w-4xl mx-auto">
         <button onClick={onBack} className="mb-8 text-cyan-400 hover:text-cyan-300">&larr; Volver al Acelerador</button>
-        <p className="text-sm font-mono text-cyan-400">Semana {weekData.week}</p>
-        <h1 className="text-4xl font-bold mt-1 mb-4">{weekData.title}</h1>
-        
-        <div className="bg-gray-800/50 p-6 rounded-lg border border-gray-700/50">
-          {isLoading ? (
-            <div className="flex flex-col items-center justify-center min-h-[300px]">
-              <NexusLogo className="w-12 h-12 text-cyan-400 animate-spin" />
-              <p className="mt-4 text-gray-400">Generando tu Códice Semanal...</p>
-            </div>
-          ) : error ? (
-            <p className="text-red-400">{error}</p>
-          ) : (
-            <div className="whitespace-pre-wrap font-sans text-gray-300">{codex}</div>
-          )}
-        </div>
+        <h1 className="text-4xl font-bold">Códice Semanal {weekData.week}</h1>
+        <p className="text-xl text-gray-400 mb-2">{weekData.title}</p>
+        <p className="text-md text-cyan-400 font-mono mb-8">Personalizado para Rango: {rank}</p>
+
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center h-64">
+            <NexusLogo className="w-16 h-16 text-cyan-400 animate-spin" />
+            <p className="mt-4 text-gray-300">Generando tu sabiduría semanal...</p>
+          </div>
+        ) : (
+          <div className="prose prose-invert prose-lg max-w-none bg-gray-800/50 p-6 rounded-lg border border-gray-700/50" dangerouslySetInnerHTML={{ __html: codex.replace(/\n/g, '<br />').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
+        )}
       </div>
     </div>
   );

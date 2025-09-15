@@ -1,148 +1,112 @@
-// FIX: Implemented constants to resolve module errors.
-import type { Agent, Rank, WeekPlan, Skill } from './types';
+// FIX: Create constants file to provide data to components
+import type { Agent, Rank, Skill, WeekPlan } from './types';
 import BrainIcon from './components/icons/BrainIcon';
-import TeamIcon from './components/icons/TeamIcon';
 import CodeIcon from './components/icons/CodeIcon';
-import BulbIcon from './components/icons/BulbIcon';
 import RocketIcon from './components/icons/RocketIcon';
+import AnalysisIcon from './components/icons/AnalysisIcon';
 
 export const AGENTS: Agent[] = [
   {
     id: 'stratego',
     name: 'Stratego',
-    description: 'Analista de Sistemas y Estratega de Negocios.',
+    description: 'Experto en estrategia, sistemas y modelos mentales.',
     icon: BrainIcon,
     color: 'cyan',
-    personalities: [
-      { id: 'default', name: 'Default', description: 'Standard Stratego', prompt: 'Eres Stratego, un experto en análisis de sistemas complejos y estrategia de negocios. Tu comunicación es directa, lógica y basada en datos. Proporcionas frameworks, modelos mentales y planes de acción claros. Tu objetivo es desglosar la complejidad y ofrecer claridad estratégica.' },
-    ],
+    personalities: [],
+  },
+  {
+    id: 'creon',
+    name: 'Creon',
+    description: 'Catalizador de ideas, experto en innovación y creatividad.',
+    icon: RocketIcon,
+    color: 'purple',
+    personalities: [],
   },
   {
     id: 'nexus',
     name: 'Nexus',
-    description: 'Coach de Liderazgo y Desarrollo Personal.',
-    icon: TeamIcon,
-    color: 'yellow',
-     personalities: [
-      { id: 'default', name: 'Default', description: 'Standard Nexus', prompt: 'Eres Nexus, un coach de liderazgo empático y motivador. Te especializas en inteligencia emocional, comunicación efectiva y desarrollo de equipos. Tus respuestas son inspiradoras, buscan el crecimiento personal y hacen preguntas poderosas para la auto-reflexión.' },
-    ],
-  },
-  {
-    id: 'innova',
-    name: 'Innova',
-    description: 'Catalizador de Creatividad e Innovación Disruptiva.',
-    icon: BulbIcon,
-    color: 'purple',
-     personalities: [
-      { id: 'default', name: 'Default', description: 'Standard Innova', prompt: 'Eres Innova, una fuente inagotable de creatividad e innovación. Piensas "fuera de la caja", conectas ideas dispares y utilizas técnicas de pensamiento lateral. Tu lenguaje es imaginativo y provocador. Tu fin es romper paradigmas y generar ideas disruptivas.' },
-    ],
-  },
-  {
-    id: 'oraculo',
-    name: 'Oraculo',
-    description: 'Experto en Futuras Tecnologías y Tendencias Globales.',
-    icon: RocketIcon,
-    color: 'pink',
-    personalities: [
-      { id: 'default', name: 'Default', description: 'Standard Oraculo', prompt: 'Eres Oraculo, un visionario con profundo conocimiento en tecnologías exponenciales y tendencias globales. Analizas el futuro y explicas sus implicaciones. Tus respuestas son futuristas, bien informadas y ofrecen una perspectiva a largo plazo sobre cualquier tema.' },
-    ],
-  },
-    {
-    id: 'codex',
-    name: 'Codex',
-    description: 'Mentor de Programación y Arquitectura de Software.',
+    description: 'Asistente de desarrollo, experto en código y tecnología.',
     icon: CodeIcon,
     color: 'green',
-    personalities: [
-      { id: 'default', name: 'Default', description: 'Standard Codex', prompt: 'Eres Codex, un ingeniero de software senior y arquitecto de sistemas. Explicas conceptos de programación complejos de forma sencilla, ofreces las mejores prácticas, patrones de diseño y consejos de arquitectura. Tu código es limpio, eficiente y bien documentado.' },
-    ],
+    personalities: [],
+  },
+    {
+    id: 'oraculo',
+    name: 'Oráculo',
+    description: 'Analista de datos y visualizador de futuros probables.',
+    icon: AnalysisIcon,
+    color: 'yellow',
+    personalities: [],
   },
 ];
 
 export const RANKS: Rank[] = [
-    { name: 'Neófito Sapiens', minXp: 0, icon: '🌱' },
-    { name: 'Aprendiz Consciente', minXp: 100, icon: '🧠' },
-    { name: 'Pensador Sistémico', minXp: 300, icon: '🕸️' },
-    { name: 'Estratega Adaptativo', minXp: 600, icon: '🗺️' },
-    { name: 'Innovador Disruptivo', minXp: 1000, icon: '💡' },
-    { name: 'Líder Exponencial', minXp: 1500, icon: '🚀' },
-    { name: 'Sapiens Trascendente', minXp: 2500, icon: '✨' },
+    { name: 'Neófito Cognitivo', minXp: 0, icon: '...' },
+    { name: 'Aprendiz Sintético', minXp: 100, icon: '...' },
+    { name: 'Pensador Aumentado', minXp: 300, icon: '...' },
+    { name: 'Arquitecto de Realidad', minXp: 700, icon: '...' },
+    { name: 'Sapiens Nexus', minXp: 1500, icon: '...' },
+];
+
+
+export const ACCELERATOR_SKILLS: Skill[] = [
+  { name: 'Pensamiento de Primeros Principios', category: 'Pensamiento Estratégico' },
+  { name: 'Modelos Mentales', category: 'Pensamiento Estratégico' },
+  { name: 'Teoría de Juegos', category: 'Pensamiento Estratégico' },
+  { name: 'Design Thinking', category: 'Innovación y Creatividad' },
+  { name: 'Creatividad Computacional', category: 'Innovación y Creatividad' },
+  { name: 'Prospectiva Estratégica', category: 'Innovación y Creatividad' },
+  { name: 'Comunicación Asertiva', category: 'Liderazgo y Comunicación' },
+  { name: 'Liderazgo Adaptativo', category: 'Liderazgo y Comunicación' },
+  { name: 'Narrativa y Storytelling', category: 'Liderazgo y Comunicación' },
 ];
 
 export const ACCELERATOR_PROGRAM: WeekPlan[] = [
-  { week: 1, title: 'Fundamentos del Pensamiento Exponencial', focus: 'Modelos Mentales y Principios de Liderazgo', challenge: 'Identificar y rediseñar un proceso personal o profesional usando el pensamiento de primeros principios.' },
-  { week: 2, title: 'Comunicación de Alto Impacto', focus: 'Storytelling, Oratoria y Escucha Activa', challenge: 'Crear y presentar un "pitch" de 3 minutos sobre una idea compleja de forma clara y persuasiva.' },
-  { week: 3, title: 'Productividad y Gestión de la Energía', focus: 'Sistemas de Enfoque Profundo (Deep Work) y Biohacking', challenge: 'Diseñar e implementar una rutina semanal personalizada que optimice los niveles de energía y enfoque.' },
-  { week: 4, title: 'Inteligencia Emocional y Resiliencia', focus: 'Autoconciencia, Autogestión y Fortaleza Mental', challenge: 'Llevar un diario de "disparadores emocionales" y desarrollar un plan proactivo para manejarlos.' },
-  { week: 5, title: 'Estrategia y Toma de Decisiones', focus: 'Análisis de Sistemas, Teoría de Juegos y Sesgos Cognitivos', challenge: 'Analizar una decisión importante (pasada o futura) usando un framework como la matriz de Eisenhower o el análisis DAFO.' },
-  { week: 6, title: 'Innovación y Creatividad Aplicada', focus: 'Pensamiento de Diseño (Design Thinking) y Técnicas de Brainstorming', challenge: 'Aplicar el proceso de Design Thinking para proponer una solución innovadora a un problema cotidiano.' },
-  { week: 7, title: 'Negociación y Resolución de Conflictos', focus: 'Principios de Negociación de Harvard y Comunicación No Violenta', challenge: 'Simular una negociación difícil, aplicando los principios aprendidos para llegar a un acuerdo beneficioso.' },
-  { week: 8, title: 'Finanzas Personales y Creación de Riqueza', focus: 'Principios de Inversión, Presupuestos y Mentalidad de Abundancia', challenge: 'Crear un plan financiero personal a 1, 5 y 10 años, identificando vehículos de inversión.' },
-  { week: 9, title: 'Marca Personal y Networking Estratégico', focus: 'Construcción de Autoridad Digital y Gestión de Relaciones', challenge: 'Optimizar un perfil de LinkedIn (u otra red profesional) y crear un plan de networking para conectar con 5 personas clave.' },
-  { week: 10, title: 'Liderazgo de Equipos de Alto Rendimiento', focus: 'Delegación, Motivación y Cultura Organizacional', challenge: 'Definir la cultura y los valores para un equipo ideal (real o ficticio) y crear un plan para fomentarlos.' },
-  { week: 11, title: 'Tecnologías Exponenciales (IA, Blockchain)', focus: 'Comprensión Conceptual y Aplicaciones Prácticas', challenge: 'Identificar 3 formas en que la IA podría impactar tu industria y proponer una iniciativa para capitalizarlo.' },
-  { week: 12, title: 'Síntesis y Plan de Evolución Futura', focus: 'Integración de Aprendizajes y Diseño de Vida', challenge: 'Crear un "Manifiesto Personal" que integre los aprendizajes y defina tu visión y plan de acción para los próximos 5 años.' },
-];
-
-export const ACCELERATOR_SKILLS: Skill[] = [
-    { name: 'Modelos Mentales', category: 'Pensamiento Estratégico' },
-    { name: 'Pensamiento de Primeros Principios', category: 'Pensamiento Estratégico' },
-    { name: 'Toma de Decisiones Basada en Datos', category: 'Pensamiento Estratégico' },
-    { name: 'Storytelling y Narrativa', category: 'Liderazgo y Comunicación' },
-    { name: 'Comunicación Asertiva', category: 'Liderazgo y Comunicación' },
-    { name: 'Negociación y Persuasión', category: 'Liderazgo y Comunicación' },
-    { name: 'Pensamiento de Diseño (Design Thinking)', category: 'Innovación y Creatividad' },
-    { name: 'Creatividad Aplicada', category: 'Innovación y Creatividad' },
-    { name: 'Resolución de Problemas Complejos', category: 'Innovación y Creatividad' },
+    { week: 1, title: "Fundamentos del Pensamiento Acelerado", focus: "Modelos Mentales y Primeros Principios", challenge: "Deconstruir una creencia personal usando Primeros Principios." },
+    { week: 2, title: "El Arte de la Estrategia", focus: "Teoría de Juegos y Pensamiento Sistémico", challenge: "Mapear un sistema complejo (personal o profesional) e identificar puntos de apalancamiento." },
+    { week: 3, title: "Navegando la Incertidumbre", focus: "Prospectiva Estratégica y Antifragilidad", challenge: "Diseñar un 'plan antifrágil' para un proyecto actual." },
+    { week: 4, title: "Comunicación de Alto Impacto", focus: "Narrativa, Storytelling y Oratoria", challenge: "Crear un 'elevator pitch' de 1 minuto para una idea compleja." },
+    { week: 5, title: "Máquinas de Creatividad", focus: "Design Thinking y Generación de Ideas", challenge: "Aplicar el ciclo de Design Thinking para resolver un problema cotidiano." },
+    { week: 6, title: "Innovación Disruptiva", focus: "Estrategias de Océano Azul y Modelos de Negocio", challenge: "Idear una innovación que cree un nuevo mercado en tu industria." },
+    { week: 7, title: "Liderazgo en la Era Exponencial", focus: "Liderazgo Adaptativo y Gestión del Cambio", challenge: "Liderar una pequeña iniciativa de cambio en tu entorno." },
+    { week: 8, title: "Inteligencia Colectiva", focus: "Colaboración, Co-creación y Redes", challenge: "Organizar y facilitar una sesión de brainstorming efectiva." },
+    { week: 9, title: "Biohacking y Rendimiento Cognitivo", focus: "Neurociencia, Nutrición y Flujo", challenge: "Implementar un nuevo hábito para optimizar tu energía mental." },
+    { week: 10, title: "Filosofía Práctica y Ética", focus: "Estoicismo, Efectivismo y Toma de Decisiones", challenge: "Aplicar un marco ético para resolver un dilema complejo." },
+    { week: 11, title: "Construyendo el Futuro", focus: "Tecnologías Exponenciales y Visión a Largo Plazo", challenge: "Desarrollar un 'manifiesto personal' para tu futuro deseado." },
+    { week: 12, title: "Proyecto Sapiens: Síntesis Final", focus: "Integración de Habilidades y Presentación", challenge: "Presentar un proyecto que demuestre el dominio de 3 habilidades clave del programa." },
 ];
 
 export const LATINO_CHALLENGES = [
-  {
-    category: "Economía y Desarrollo",
-    challenges: [
-      "Reducción de la desigualdad económica y social.",
-      "Fomento de la innovación y el emprendimiento tecnológico (startups).",
-      "Diversificación de las economías más allá de las materias primas.",
-      "Integración económica regional y fortalecimiento de bloques comerciales.",
-      "Formalización de la economía informal.",
-      "Mejora de la infraestructura física (transporte, energía, telecomunicaciones).",
-      "Aumento de la productividad y competitividad industrial.",
-    ]
-  },
-  {
-    category: "Política y Gobernanza",
-    challenges: [
-        "Fortalecimiento de la democracia y las instituciones.",
-        "Lucha contra la corrupción y la impunidad.",
-        "Garantizar la seguridad ciudadana y reducir la violencia.",
-        "Reforma de los sistemas de justicia para mayor eficiencia y acceso.",
-        "Modernización del estado y la administración pública.",
-        "Protección de los derechos humanos y de las minorías.",
-        "Gestión de crisis migratorias y de refugiados.",
-    ]
-  },
-  {
-    category: "Sociedad y Cultura",
-    challenges: [
-        "Mejora de la calidad y el acceso a la educación en todos los niveles.",
-        "Fortalecimiento de los sistemas de salud pública.",
-        "Reducción de la brecha digital y fomento de la alfabetización digital.",
-        "Promoción de la igualdad de género y empoderamiento de la mujer.",
-        "Preservación del patrimonio cultural y la diversidad.",
-        "Combate a la desinformación y las noticias falsas.",
-        "Fomento de la cohesión social y la confianza cívica.",
-    ]
-  },
     {
-    category: "Medio Ambiente y Sostenibilidad",
-    challenges: [
-        "Protección de la Amazonía y otros ecosistemas vitales.",
-        "Transición hacia energías limpias y renovables.",
-        "Gestión sostenible del agua y los recursos hídricos.",
-        "Adaptación al cambio climático y mitigación de sus efectos.",
-        "Desarrollo de ciudades sostenibles y resilientes.",
-        "Lucha contra la deforestación y la pérdida de biodiversidad.",
-        "Manejo de residuos y promoción de la economía circular.",
-    ]
-  }
+        category: "Desarrollo Económico y Social",
+        challenges: [
+            "Reducción de la desigualdad y la pobreza extrema.",
+            "Transformación de las matrices productivas hacia la economía del conocimiento.",
+            "Formalización de la economía y el empleo.",
+            "Mejora de la calidad y cobertura de la educación pública.",
+            "Fortalecimiento de los sistemas de salud y acceso universal.",
+            "Solución al déficit de vivienda y urbanización sostenible.",
+            "Integración económica regional y cadenas de valor.",
+        ],
+    },
+    {
+        category: "Gobernanza y Estado de Derecho",
+        challenges: [
+            "Lucha contra la corrupción y fortalecimiento de la transparencia.",
+            "Fortalecimiento de las instituciones democráticas y el Estado de Derecho.",
+            "Garantía de la seguridad ciudadana y reducción de la violencia.",
+            "Reforma de los sistemas de justicia para mayor eficiencia y acceso.",
+            "Protección de los derechos humanos y de las minorías.",
+        ],
+    },
+    {
+        category: "Sostenibilidad y Medio Ambiente",
+        challenges: [
+            "Adaptación y mitigación del cambio climático.",
+            "Protección de la biodiversidad y los ecosistemas estratégicos (Amazonía, etc.).",
+            "Gestión sostenible del agua y los recursos hídricos.",
+            "Transición hacia energías limpias y renovables.",
+            "Desarrollo de una economía circular y gestión de residuos.",
+        ],
+    },
 ];
