@@ -1,5 +1,6 @@
 import React from 'react';
-import type { Agent, Rank } from './types';
+// FIX: Added 'WeekPlan' and 'Skill' types to support new constants.
+import type { Agent, Rank, WeekPlan, Skill } from '../types';
 import BrainIcon from './components/icons/BrainIcon';
 import BulbIcon from './components/icons/BulbIcon';
 import CodeIcon from './components/icons/CodeIcon';
@@ -55,4 +56,26 @@ export const RANKS: Rank[] = [
     { name: 'Arquitecto Neuronal', minXp: 600, icon: '...'},
     { name: 'Sintetizador de Realidad', minXp: 1000, icon: '...'},
     { name: 'Nexus Sapiens', minXp: 1500, icon: '...'},
+];
+
+// FIX: Added 'ACCELERATOR_PROGRAM' to centralize constants and resolve import errors.
+export const ACCELERATOR_PROGRAM: WeekPlan[] = [
+    { week: 1, title: "Pensamiento Exponencial", focus: "Deconstruir problemas a sus fundamentos.", challenge: "Deconstruye un objeto cotidiano y rediseña 3 alternativas." },
+    { week: 2, title: "Comunicación de Alto Impacto", focus: "Crear narrativas que inspiran acción.", challenge: "Crea un 'pitch' de 3 minutos para una causa social." },
+];
+
+// FIX: Added 'LATINO_CHALLENGES' to centralize constants and resolve import errors.
+export const LATINO_CHALLENGES = [
+    { category: 'Identidad y Cultura', challenges: ['Pérdida de lenguas indígenas.', 'Homogeneización cultural.'] },
+    { category: 'Sociedad y Valores', challenges: ['Racismo interno.', 'Machismo y desigualdad.'] },
+];
+
+// FIX: Added 'ACCELERATOR_SKILLS' to centralize constants and resolve import errors.
+export const ACCELERATOR_SKILLS: Skill[] = [
+  { name: 'Pensamiento de Primeros Principios', category: 'Pensamiento Estratégico' },
+  { name: 'Storytelling Persuasivo', category: 'Liderazgo y Comunicación' },
+  { name: 'Síntesis de Información Compleja', category: 'Pensamiento Estratégico' },
+  { name: 'Ideación y Brainstorming Estructurado', category: 'Innovación y Creatividad' },
+  { name: 'Liderazgo Adaptativo', category: 'Liderazgo y Comunicación' },
+  { name: 'Prototipado Rápido', category: 'Innovación y Creatividad' },
 ];
