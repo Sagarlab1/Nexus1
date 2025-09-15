@@ -7,6 +7,7 @@ import AgentPanel from './components/AgentPanel';
 import ChatWindow from './components/ChatWindow';
 import ApiKeyPrompt from './components/ApiKeyPrompt';
 import UserRankPanel from './components/UserRankPanel';
+import ApiStatusOverlay from './components/ApiStatusOverlay';
 
 // --- Type definitions for Web Speech API ---
 interface SpeechRecognitionEvent extends Event {
@@ -38,6 +39,8 @@ const API_KEY = process.env.API_KEY;
 
 const App: React.FC = () => {
   const [ai, setAi] = React.useState<GoogleGenAI | null>(null);
+  const [apiStatus, setApiStatus] = React.useState<'checking' | 'ok' | 'error'>('checking');
+  const [apiErrorDetails, setApiErrorDetails] = React.useState<string | null>(null);
   const [isLoggedIn, setIsLoggedIn] = React.useState(false);
   const [activeAgent, setActiveAgent] = React.useState<Agent>(AGENTS[0]);
   const [chat, setChat] = React.useState<Chat | null>(null);
@@ -50,20 +53,49 @@ const App: React.FC = () => {
   const [isListening, setIsListening] = React.useState(false);
   const [isSpeaking, setIsSpeaking] = React.useState(false);
   const recognitionRef = React.useRef<SpeechRecognition | null>(null);
+
+  const checkApiStatus = async (genAI: GoogleGenAI) => {
+    setApiStatus('checking');
+    setApiErrorDetails(null);
+    try {
+      // Use a simple, non-streaming call to test the connection
+      await genAI.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: 'Hola',
+        config: { thinkingConfig: { thinkingBudget: 0 } }
+      });
+      setApiStatus('ok');
+    } catch (e) {
+      setApiStatus('error');
+      console.error('[API Status Check Failed]', e);
+      if (e instanceof Error) {
+        setApiErrorDetails(e.message);
+      } else {
+        setApiErrorDetails(String(e));
+      }
+    }
+  };
   
   React.useEffect(() => {
-    if (API_KEY) {
+    if (API_KEY && isLoggedIn) {
       try {
         const genAI = new GoogleGenAI({ apiKey: API_KEY });
         setAi(genAI);
+        checkApiStatus(genAI);
       } catch (e) {
         console.error("Error initializing GoogleGenAI", e);
+        setApiStatus('error');
+        if (e instanceof Error) {
+          setApiErrorDetails(`Error al inicializar la IA: ${e.message}\n\nPor favor, verifica que la clave de API sea correcta.`);
+        } else {
+          setApiErrorDetails(`Se produjo un error desconocido al inicializar la IA.`);
+        }
       }
     }
-  }, []);
+  }, [API_KEY, isLoggedIn]);
   
   React.useEffect(() => {
-    if (!ai) return;
+    if (!ai || apiStatus !== 'ok') return;
 
     setMessages([]);
     setIsLoading(false);
@@ -78,7 +110,7 @@ const App: React.FC = () => {
     setMessages([
         { id: 'initial', text: `Hola, soy ${activeAgent.name}. ¿En qué podemos profundizar hoy?`, sender: 'agent' }
     ]);
-  }, [ai, activeAgent]);
+  }, [ai, activeAgent, apiStatus]);
 
   const handleSendMessage = async () => {
     if (!input.trim() || !chat || isLoading) return;
@@ -104,13 +136,18 @@ const App: React.FC = () => {
       }
       speak(fullText);
     } catch (error) {
-       if (error instanceof Error && error.name === 'AbortError') {
-         console.log("Generation aborted");
-         setMessages(prev => prev.map(msg => msg.id === agentMessageId ? { ...msg, text: "Generación detenida." } : msg));
+       console.error("Error sending message:", error);
+       let errorMessage = "Ocurrió un error inesperado. Por favor, inténtalo de nuevo.";
+       if (error instanceof Error) {
+         if (error.name === 'AbortError') {
+           errorMessage = "Generación detenida.";
+         } else {
+           errorMessage = `Se produjo un error al comunicarse con la IA.\n\n*Detalles:* ${error.message}\n\nPor favor, verifica los siguientes puntos:\n1. La clave de API es válida y está correctamente configurada.\n2. La facturación está habilitada para tu proyecto de Google Cloud.\n3. La API de Gemini está activada en tu proyecto de Google Cloud.`;
+         }
        } else {
-        console.error("Error sending message:", error);
-        setMessages(prev => prev.map(msg => msg.id === agentMessageId ? { ...msg, text: "La clave de API no fue encontrada. Por favor, configura la variable de entorno API_KEY." } : msg));
+          errorMessage = `Se produjo un error inesperado.\n\n*Detalles:* ${String(error)}`;
        }
+       setMessages(prev => prev.map(msg => msg.id === agentMessageId ? { ...msg, text: errorMessage } : msg));
     } finally {
       setIsLoading(false);
       generationController.current = null;
@@ -181,6 +218,10 @@ const App: React.FC = () => {
     return <LoginScreen onLogin={() => setIsLoggedIn(true)} />;
   }
   
+  if (apiStatus !== 'ok') {
+    return <ApiStatusOverlay status={apiStatus} errorDetails={apiErrorDetails} />;
+  }
+
   return (
     <main className="w-screen h-screen bg-gray-900 text-white p-4 font-sans flex gap-4 overflow-hidden">
       <div className="w-1/4 flex flex-col gap-4">
@@ -189,25 +230,19 @@ const App: React.FC = () => {
       </div>
 
       <div className="flex-1">
-         {ai ? (
-            <ChatWindow 
-                messages={messages}
-                activeAgent={activeAgent}
-                onSendMessage={handleSendMessage}
-                isLoading={isLoading}
-                onStopGeneration={stopGeneration}
-                input={input}
-                setInput={setInput}
-                isListening={isListening}
-                onToggleListening={toggleListening}
-                isSpeaking={isSpeaking}
-                onStopSpeaking={handleStopSpeaking}
-            />
-         ) : (
-            <div className="flex items-center justify-center h-full bg-gray-900/50 backdrop-blur-sm border border-gray-700/50 rounded-lg">
-                <p>Inicializando IA...</p>
-            </div>
-         )}
+        <ChatWindow 
+            messages={messages}
+            activeAgent={activeAgent}
+            onSendMessage={handleSendMessage}
+            isLoading={isLoading}
+            onStopGeneration={stopGeneration}
+            input={input}
+            setInput={setInput}
+            isListening={isListening}
+            onToggleListening={toggleListening}
+            isSpeaking={isSpeaking}
+            onStopSpeaking={handleStopSpeaking}
+        />
       </div>
     </main>
   );
