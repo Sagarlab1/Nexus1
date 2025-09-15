@@ -1,86 +1,85 @@
+// FIX: Implemented the main App component to resolve module errors and provide core functionality.
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+// FIX: Use GoogleGenAI from "@google/genai"
 import { GoogleGenAI, Chat } from '@google/genai';
-import type { Message, Agent, Rank } from './types';
 import { AGENTS, RANKS } from './constants';
-import ChatWindow from './components/ChatWindow';
+import type { Message, Agent, Odyssey, Rank } from './types';
+import { useSound } from './hooks/useSound';
+import 'regenerator-runtime/runtime';
+import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
+
 import AgentPanel from './components/AgentPanel';
+import ChatWindow from './components/ChatWindow';
 import UserRankPanel from './components/UserRankPanel';
+import SkillTree from './components/SkillTree';
 import LoginScreen from './components/LoginScreen';
-import ApiKeyPrompt from './components/ApiKeyPrompt';
 import ChallengesPage from './components/ChallengesPage';
-import PremiumModal from './components/PremiumModal';
-import LibraryModal from './components/LibraryModal';
+import OdysseyGenerator from './components/OdysseyGenerator';
 import LatinoChallengesPage from './components/LatinoChallengesPage';
 import ProgramsPage from './components/ProgramsPage';
-import OdysseyGenerator from './components/OdysseyGenerator';
-import VideoGeneratorModal from './components/VideoGeneratorModal';
 
-declare global {
-    interface Window {
-        SpeechRecognition: any;
-        webkitSpeechRecognition: any;
-    }
-}
-
+type View = 'login' | 'main' | 'challenges' | 'odyssey_generator' | 'latino_challenges' | 'programs';
 
 const App: React.FC = () => {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [view, setView] = useState<'chat' | 'challenges' | 'latino-challenges' | 'programs' | 'odyssey-generator'>('chat');
+  const [view, setView] = useState<View>('login');
   
   const [messages, setMessages] = useState<Message[]>([]);
   const [activeAgent, setActiveAgent] = useState<Agent>(AGENTS[0]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [userXp, setUserXp] = useState(0); // Dummy XP state
-  const [currentRank, setCurrentRank] = useState<Rank>(RANKS[0]);
   
-  const [isPremiumModalOpen, setIsPremiumModalOpen] = useState(false);
-  const [isLibraryModalOpen, setIsLibraryModalOpen] = useState(false);
-  const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
+  const [currentXp, setCurrentXp] = useState(120); // Starting XP
+  const [currentRank, setCurrentRank] = useState<Rank>(RANKS[0]);
 
-  const [isListening, setIsListening] = useState(false);
-  const [isSpeaking, setIsSpeaking] = useState(false);
-  const recognitionRef = useRef<any>(null);
+  const [odysseys, setOdysseys] = useState<Odyssey[]>([]);
 
   const chatRef = useRef<Chat | null>(null);
   const stopGenerationRef = useRef<boolean>(false);
-  
-  const API_KEY = process.env.API_KEY;
+  const [isSpeaking, setIsSpeaking] = useState(false);
+
+  const playSound = useSound();
 
   useEffect(() => {
-    const newRank = RANKS.slice().reverse().find(r => userXp >= r.minXp) || RANKS[0];
-    setCurrentRank(newRank);
-  }, [userXp]);
+    const rank = RANKS.slice().reverse().find(r => currentXp >= r.minXp) || RANKS[0];
+    setCurrentRank(rank);
+  }, [currentXp]);
 
-  const initializeChat = useCallback(() => {
-    if (!API_KEY) return;
-    const ai = new GoogleGenAI({ apiKey: API_KEY });
-    const personalityPrompt = activeAgent.personalities.find(p => p.id === 'default')?.prompt || 'You are a helpful assistant.';
+  const startNewChat = useCallback(() => {
+    if (!process.env.API_KEY) {
+      console.error("API key not found.");
+      const errorMessage: Message = {
+        id: Date.now(),
+        text: "La clave de API no fue encontrada. Por favor, configura la variable de entorno API_KEY.",
+        sender: 'agent',
+      };
+      setMessages([errorMessage]);
+      return;
+    }
+    // FIX: Initialize GoogleGenAI with a named apiKey object
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const personalityPrompt = activeAgent.personalities[0].prompt;
+    
+    // FIX: Use ai.chats.create to start a new chat session
     chatRef.current = ai.chats.create({
       model: 'gemini-2.5-flash',
       config: {
         systemInstruction: personalityPrompt,
-      }
+      },
     });
-  }, [activeAgent, API_KEY]);
+
+    const welcomeMessage: Message = {
+      id: Date.now(),
+      text: `Hola, soy ${activeAgent.name}. ${activeAgent.description} ¿En qué puedo ayudarte hoy?`,
+      sender: 'agent',
+    };
+    setMessages([welcomeMessage]);
+  }, [activeAgent]);
 
   useEffect(() => {
-    initializeChat();
-    setMessages([]); // Reset messages when agent changes
-  }, [activeAgent, initializeChat]);
+    startNewChat();
+  }, [activeAgent, startNewChat]);
 
-  const speak = (text: string) => {
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel(); // Cancel any previous speech
-      const utterance = new SpeechSynthesisUtterance(text.replace(/\*/g, ''));
-      utterance.lang = 'es-ES';
-      utterance.onstart = () => setIsSpeaking(true);
-      utterance.onend = () => setIsSpeaking(false);
-      window.speechSynthesis.speak(utterance);
-    }
-  };
-
-  const handleSendMessage = useCallback(async () => {
+  const handleSendMessage = async () => {
     if (!input.trim() || !chatRef.current) return;
 
     const userMessage: Message = { id: Date.now(), text: input, sender: 'user' };
@@ -88,156 +87,139 @@ const App: React.FC = () => {
     setInput('');
     setIsLoading(true);
     stopGenerationRef.current = false;
-
-    const agentMessageId = Date.now() + 1;
-    setMessages(prev => [...prev, { id: agentMessageId, text: '', sender: 'agent' }]);
+    playSound('send');
     
-    let fullResponseText = '';
-
     try {
+      // FIX: Use chat.sendMessageStream for streaming responses
       const stream = await chatRef.current.sendMessageStream({ message: input });
+      let agentResponseText = '';
+      let agentMessageId = 0;
 
       for await (const chunk of stream) {
-        if (stopGenerationRef.current) break;
-        const chunkText = chunk.text;
-        fullResponseText += chunkText;
-        setMessages(prev =>
-          prev.map(msg =>
-            msg.id === agentMessageId ? { ...msg, text: fullResponseText } : msg
-          )
-        );
-      }
-      if (!stopGenerationRef.current) {
-        speak(fullResponseText);
+        if (stopGenerationRef.current) {
+            break;
+        }
+        // FIX: Access chunk.text directly to get the content
+        agentResponseText += chunk.text;
+        
+        if (!agentMessageId) {
+            agentMessageId = Date.now() + 1;
+            setMessages(prev => [...prev, { id: agentMessageId, text: agentResponseText, sender: 'agent' }]);
+        } else {
+            setMessages(prev => prev.map(msg => 
+                msg.id === agentMessageId ? { ...msg, text: agentResponseText } : msg
+            ));
+        }
       }
 
     } catch (error) {
       console.error('Error sending message:', error);
-      const errorMessage = 'Lo siento, he encontrado un error.';
-      setMessages(prev =>
-        prev.map(msg =>
-          msg.id === agentMessageId ? { ...msg, text: errorMessage } : msg
-        )
-      );
-      speak(errorMessage);
+      const errorMessage: Message = {
+        id: Date.now() + 1,
+        text: 'Lo siento, ha ocurrido un error. Por favor, inténtalo de nuevo.',
+        sender: 'agent',
+      };
+      setMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
+      playSound('receive');
     }
-  }, [input]);
-  
-  const handleStopGeneration = () => {
+  };
+
+  const onStopGeneration = () => {
     stopGenerationRef.current = true;
     setIsLoading(false);
   };
+  
+  const onStopSpeaking = () => {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+  }
+
+  const {
+    transcript,
+    listening,
+    resetTranscript,
+    browserSupportsSpeechRecognition
+  } = useSpeechRecognition();
+
+   useEffect(() => {
+    setInput(transcript);
+  }, [transcript]);
 
   const handleToggleListening = () => {
-    if (isListening) {
-      recognitionRef.current?.stop();
-      setIsListening(false);
+    if (listening) {
+      SpeechRecognition.stopListening();
     } else {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (SpeechRecognition) {
-        recognitionRef.current = new SpeechRecognition();
-        recognitionRef.current.continuous = false;
-        recognitionRef.current.interimResults = false;
-        recognitionRef.current.lang = 'es-ES';
-        
-        recognitionRef.current.onstart = () => setIsListening(true);
-        recognitionRef.current.onend = () => setIsListening(false);
-        recognitionRef.current.onerror = (event: any) => {
-          console.error('Speech recognition error:', event.error);
-          setIsListening(false);
-        };
-        recognitionRef.current.onresult = (event: any) => {
-          const transcript = event.results[0][0].transcript;
-          setInput(transcript);
-        };
-        recognitionRef.current.start();
-      } else {
-        alert('Speech recognition is not supported in your browser.');
-      }
+      resetTranscript();
+      SpeechRecognition.startListening({ continuous: true, language: 'es-ES' });
     }
   };
 
-  const handleStopSpeaking = () => {
-      window.speechSynthesis.cancel();
-      setIsSpeaking(false);
-  };
-
-
-  if (!API_KEY) {
-    return <ApiKeyPrompt />;
-  }
-
-  if (!isLoggedIn) {
-    return <LoginScreen onLogin={() => setIsLoggedIn(true)} />;
+  if (!browserSupportsSpeechRecognition) {
+    console.log("Browser doesn't support speech recognition.");
   }
   
+  const handleLogin = () => {
+    setView('main');
+    playSound('login');
+  }
+  
+  const handleOdysseyCreated = (odyssey: Odyssey) => {
+    setOdysseys(prev => [...prev, odyssey]);
+    setView('main');
+  }
+
   const renderView = () => {
-      switch(view) {
-          case 'chat':
-              return (
-                 <ChatWindow
-                    messages={messages}
-                    activeAgent={activeAgent}
-                    onSendMessage={handleSendMessage}
-                    isLoading={isLoading}
-                    onStopGeneration={handleStopGeneration}
-                    input={input}
-                    setInput={setInput}
-                    isListening={isListening}
-                    onToggleListening={handleToggleListening}
-                    isSpeaking={isSpeaking}
-                    onStopSpeaking={handleStopSpeaking}
-                  />
-              );
-          case 'challenges':
-              return <ChallengesPage onBack={() => setView('chat')} currentRank={currentRank} />;
-          case 'latino-challenges':
-              return <LatinoChallengesPage onBack={() => setView('chat')} />;
-          case 'programs':
-              return <ProgramsPage onUnlockAccelerator={() => setView('challenges')} onUnlockOdyssey={() => setView('odyssey-generator')} />;
-          case 'odyssey-generator':
-              return <OdysseyGenerator onBack={() => setView('programs')} />;
-      }
-  };
+    switch(view) {
+      case 'login':
+        return <LoginScreen onLogin={handleLogin} />;
+      case 'challenges':
+        return <ChallengesPage onBack={() => setView('main')} currentRank={currentRank} />;
+      case 'odyssey_generator':
+        return <OdysseyGenerator onBack={() => setView('main')} onOdysseyCreated={handleOdysseyCreated} />;
+      case 'latino_challenges':
+        return <LatinoChallengesPage onBack={() => setView('main')} />;
+      case 'programs':
+        return <ProgramsPage onUnlockAccelerator={() => setView('challenges')} onUnlockOdyssey={() => setView('odyssey_generator')} />;
+      case 'main':
+      default:
+        return (
+          <main className="grid grid-cols-1 lg:grid-cols-3 gap-4 p-4 h-full">
+            <div className="lg:col-span-1 flex flex-col gap-4">
+              <UserRankPanel rank={currentRank.name} onHomeClick={() => setView('programs')} />
+              <AgentPanel
+                agents={AGENTS}
+                activeAgent={activeAgent}
+                onSelectAgent={setActiveAgent}
+              />
+              <SkillTree />
+            </div>
+            <div className="lg:col-span-2">
+              <ChatWindow
+                messages={messages}
+                activeAgent={activeAgent}
+                onSendMessage={handleSendMessage}
+                isLoading={isLoading}
+                onStopGeneration={onStopGeneration}
+                input={input}
+                setInput={setInput}
+                isListening={listening}
+                onToggleListening={handleToggleListening}
+                isSpeaking={isSpeaking}
+                onStopSpeaking={onStopSpeaking}
+              />
+            </div>
+          </main>
+        );
+    }
+  }
 
   return (
-    <div className="bg-gray-900 text-white min-h-screen font-sans bg-cover bg-center" style={{ backgroundImage: "url('/background.png')"}}>
-      <div className="container mx-auto p-4">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <div className="lg:col-span-1 space-y-4">
-            <UserRankPanel rank={currentRank.name} onHomeClick={() => setView('chat')} />
-            <AgentPanel
-              agents={AGENTS}
-              activeAgent={activeAgent}
-              onSelectAgent={setActiveAgent}
-            />
-             <div className="bg-gray-900/50 backdrop-blur-sm border border-gray-700/50 rounded-lg p-6 shadow-lg shadow-black/20">
-                <button onClick={() => setIsPremiumModalOpen(true)} className="w-full text-white font-bold py-2 px-4 rounded bg-cyan-600 hover:bg-cyan-500">Programas Premium</button>
-                <button onClick={() => setIsLibraryModalOpen(true)} className="w-full text-white font-bold py-2 px-4 rounded mt-2 bg-purple-600 hover:bg-purple-500">Biblioteca</button>
-                <button onClick={() => setIsVideoModalOpen(true)} className="w-full text-white font-bold py-2 px-4 rounded mt-2 bg-green-600 hover:bg-green-500">Generador de Video</button>
-             </div>
-          </div>
-          <main className="lg:col-span-2">
-            {renderView()}
-          </main>
-        </div>
+    <div className="bg-gray-900 text-white min-h-screen font-sans bg-cover bg-center" style={{backgroundImage: "url('/background.png')"}}>
+      <div className="bg-black/50 backdrop-blur-sm min-h-screen">
+          {renderView()}
       </div>
-      {isPremiumModalOpen && <PremiumModal 
-        onClose={() => setIsPremiumModalOpen(false)} 
-        onUnlockAccelerator={() => { setView('challenges'); setIsPremiumModalOpen(false); }}
-        onLearnMore={() => { setView('programs'); setIsPremiumModalOpen(false); }}
-        // FIX: Added 'onUnlockOdyssey' prop to handle navigation to the Odyssey generator from the premium modal.
-        onUnlockOdyssey={() => { setView('odyssey-generator'); setIsPremiumModalOpen(false); }}
-        />}
-      {isLibraryModalOpen && <LibraryModal 
-        onClose={() => setIsLibraryModalOpen(false)} 
-        onSelectLatinoChallenges={() => { setView('latino-challenges'); setIsLibraryModalOpen(false); }}
-        />}
-       {isVideoModalOpen && <VideoGeneratorModal
-        onClose={() => setIsVideoModalOpen(false)}
-        />}
     </div>
   );
 };
