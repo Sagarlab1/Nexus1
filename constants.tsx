@@ -1,99 +1,105 @@
-import type { Agent, Rank, Skill, WeekPlan } from './types';
+import type { Agent, Rank, WeekPlan, Skill } from './types';
+
+// Icons
 import BrainIcon from './components/icons/BrainIcon';
-import CodeIcon from './components/icons/CodeIcon';
-import BulbIcon from './components/icons/BulbIcon';
 import TeamIcon from './components/icons/TeamIcon';
+import BulbIcon from './components/icons/BulbIcon';
+import HeartMindIcon from './components/icons/HeartMindIcon';
+
 
 export const AGENTS: Agent[] = [
   {
-    id: 'nexus',
-    name: 'Nexus',
-    description: 'Tu conector a la inteligencia colectiva.',
+    id: 'stratego',
+    name: 'Stratego',
+    description: 'Analista de sistemas y estratega de negocios.',
     icon: BrainIcon,
     color: 'cyan',
     personalities: [],
   },
   {
-    id: 'strategos',
-    name: 'Strategos',
-    description: 'Analista experto en sistemas y estrategia.',
-    icon: TeamIcon,
-    color: 'yellow',
-    personalities: [],
-  },
-  {
-    id: 'kreator',
-    name: 'Kreator',
-    description: 'Generador de ideas y contenido innovador.',
+    id: 'oraculo',
+    name: 'Oráculo',
+    description: 'Experto en creatividad, innovación y tendencias.',
     icon: BulbIcon,
     color: 'purple',
     personalities: [],
   },
-    {
-    id: 'code-weaver',
-    name: 'Code Weaver',
-    description: 'Asistente de programación y desarrollo.',
-    icon: CodeIcon,
-    color: 'green',
+  {
+    id: 'mentor',
+    name: 'Mentor',
+    description: 'Coach de liderazgo y comunicación efectiva.',
+    icon: TeamIcon,
+    color: 'yellow',
+    personalities: [],
+  },
+   {
+    id: 'nexus',
+    name: 'Nexus',
+    description: 'IA central, uniendo todas las disciplinas.',
+    icon: HeartMindIcon,
+    color: 'pink',
     personalities: [],
   },
 ];
 
 export const RANKS: Rank[] = [
-  { name: 'Neófito', minXp: 0, icon: '...' },
-  { name: 'Iniciado', minXp: 100, icon: '...' },
-  { name: 'Aprendiz', minXp: 250, icon: '...' },
-  { name: 'Adepto', minXp: 500, icon: '...' },
-  { name: 'Maestro', minXp: 1000, icon: '...' },
-];
-
-export const ACCELERATOR_SKILLS: Skill[] = [
-  { name: 'Pensamiento de Primeros Principios', category: 'Pensamiento Estratégico' },
-  { name: 'Modelos Mentales', category: 'Pensamiento Estratégico' },
-  { name: 'Análisis de Sistemas Complejos', category: 'Pensamiento Estratégico' },
-  { name: 'Toma de Decisiones Basada en Datos', category: 'Pensamiento Estratégico' },
-  { name: 'Design Thinking', category: 'Innovación y Creatividad' },
-  { name: 'Prototipado Rápido', category: 'Innovación y Creatividad' },
-  { name: 'Creatividad Computacional', category: 'Innovación y Creatividad' },
-  { name: 'Storytelling y Narrativa', category: 'Liderazgo y Comunicación' },
-  { name: 'Comunicación Asertiva', category: 'Liderazgo y Comunicación' },
-  { name: 'Liderazgo Adaptativo', category: 'Liderazgo y Comunicación' },
+  { name: 'Neófito', minXp: 0, icon: '🌱' },
+  { name: 'Iniciado', minXp: 100, icon: '🔥' },
+  { name: 'Adepto', minXp: 300, icon: '⚡️' },
+  { name: 'Maestro', minXp: 700, icon: '🌟' },
+  { name: 'Sapiens', minXp: 1500, icon: '🧠' },
 ];
 
 export const ACCELERATOR_PROGRAM: WeekPlan[] = [
-    { week: 1, title: "Fundamentos del Pensamiento Acelerado", focus: "Modelos Mentales y Primeros Principios", challenge: "Deconstruir una creencia personal usando Primeros Principios." },
-    { week: 2, title: "Análisis de Sistemas Complejos", focus: "Pensamiento Sistémico", challenge: "Mapear un sistema complejo de tu elección (ej. tu empresa, una industria)." },
-    { week: 3, title: "Toma de Decisiones Cuantitativa", focus: "Estadística y Probabilidad Aplicada", challenge: "Analizar un conjunto de datos para tomar una decisión informada." },
-    { week: 4, title: "Comunicación de Alto Impacto", focus: "Narrativa y Storytelling", challenge: "Crear una presentación de 5 minutos que narre una idea compleja." },
-    { week: 5, title: "Introducción a la Innovación", focus: "Design Thinking", challenge: "Identificar un problema y generar 10 soluciones usando técnicas de Design Thinking." },
-    { week: 6, title: "Prototipado y Experimentación", focus: "Metodología Lean Startup", challenge: "Crear un prototipo de baja fidelidad para una de tus soluciones." },
-    { week: 7, title: "Liderazgo en la Era Digital", focus: "Liderazgo Adaptativo", challenge: "Resolver un caso de estudio sobre un dilema de liderazgo moderno." },
-    { week: 8, title: "Productividad y Flujo", focus: "Gestión de la Energía y Enfoque Profundo", challenge: "Diseñar e implementar una semana de 'trabajo profundo' optimizada." },
-    { week: 9, title: "Negociación y Persuasión", focus: "Psicología de la Influencia", challenge: "Participar en un role-play de negociación de alto riesgo." },
-    { week: 10, title: "Creatividad Computacional", focus: "Introducción a la IA Generativa", challenge: "Usar una herramienta de IA para generar una pieza de arte, texto o código." },
-    { week: 11, title: "Estrategia y Visión a Largo Plazo", focus: "Planificación de Escenarios", challenge: "Desarrollar tres posibles escenarios futuros para tu carrera o industria." },
-    { week: 12, title: "Proyecto de Síntesis", focus: "Integración de Habilidades", challenge: "Presentar un proyecto final que aplique al menos 5 habilidades del acelerador a un problema real." },
+  { week: 1, title: 'Fundamentos del Pensamiento Exponencial', focus: 'Modelos Mentales y Metacognición', challenge: 'Analizar una creencia limitante personal usando 3 modelos mentales diferentes.' },
+  { week: 2, title: 'Comunicación de Alto Impacto', focus: 'Storytelling y Oratoria Persuasiva', challenge: 'Crear un "elevator pitch" de 60 segundos sobre un proyecto personal y grabarlo.' },
+  { week: 3, title: 'Principios de Innovación Disruptiva', focus: 'Design Thinking y Lean Startup', challenge: 'Identificar un problema cotidiano y prototipar una solución simple en papel.' },
+  { week: 4, title: 'Liderazgo Adaptativo en la Incertidumbre', focus: 'Inteligencia Emocional y Gestión de Equipos', challenge: 'Realizar una "entrevista de empatía" con un colega para entender sus desafíos.' },
+  { week: 5, title: 'Productividad y Enfoque Profundo', focus: 'Gestión de la Energía y Sistemas de Productividad', challenge: 'Diseñar y ejecutar un "bloque de trabajo profundo" de 90 minutos sin distracciones.' },
+  { week: 6, title: 'Toma de Decisiones Complejas', focus: 'Heurísticas, Sesgos Cognitivos y Teoría de Juegos', challenge: 'Analizar una decisión importante reciente, identificando los sesgos que pudieron haber influido.' },
+];
+
+export const ACCELERATOR_SKILLS: Skill[] = [
+    { name: 'Pensamiento de Primeros Principios', category: 'Pensamiento Estratégico' },
+    { name: 'Análisis de Sistemas Complejos', category: 'Pensamiento Estratégico' },
+    { name: 'Toma de Decisiones Basada en Datos', category: 'Pensamiento Estratégico' },
+    { name: 'Síntesis y Abstracción', category: 'Innovación y Creatividad' },
+    { name: 'Ideación y Brainstorming Estructurado', category: 'Innovación y Creatividad' },
+    { name: 'Creación Rápida de Prototipos', category: 'Innovación y Creatividad' },
+    { name: 'Comunicación Asertiva', category: 'Liderazgo y Comunicación' },
+    { name: 'Negociación y Persuasión', category: 'Liderazgo y Comunicación' },
+    { name: 'Inteligencia Emocional', category: 'Liderazgo y Comunicación' },
 ];
 
 export const LATINO_CHALLENGES = [
-  {
-    category: "Desarrollo Económico y Equidad",
-    challenges: [
-      "Reducción de la desigualdad de ingresos y la pobreza extrema.",
-      "Formalización de la economía y el empleo.",
-      "Diversificación de las economías más allá de las materias primas.",
-      "Integración de la región en cadenas de valor globales de alta tecnología.",
-      "Fomento del emprendimiento y la innovación como motores de crecimiento.",
-    ],
-  },
-  {
-    category: "Gobernanza, Instituciones y Seguridad",
-    challenges: [
-      "Fortalecimiento del estado de derecho y lucha contra la corrupción.",
-      "Mejora de la seguridad ciudadana y reducción de la violencia.",
-      "Modernización y digitalización del sector público.",
-      "Garantizar la estabilidad política y la solidez democrática.",
-      "Protección de los derechos humanos y las libertades fundamentales.",
-    ],
-  },
+    {
+        category: 'Desarrollo Económico y Social',
+        challenges: [
+            "Reducción de la desigualdad y la pobreza.",
+            "Transformación de las matrices productivas y diversificación económica.",
+            "Mejora de la calidad y acceso a la educación.",
+            "Fortalecimiento de los sistemas de salud pública.",
+            "Formalización del empleo y mejora de las condiciones laborales.",
+        ]
+    },
+    {
+        category: 'Gobernanza, Instituciones y Seguridad',
+        challenges: [
+            "Lucha contra la corrupción y fortalecimiento de la transparencia.",
+            "Mejora de la seguridad ciudadana y reducción de la violencia.",
+            "Fortalecimiento del estado de derecho y la independencia judicial.",
+            "Modernización del estado y eficiencia en la gestión pública.",
+            "Crisis migratorias y desplazamiento forzado.",
+        ]
+    },
+    {
+        category: 'Sostenibilidad Ambiental y Cambio Climático',
+        challenges: [
+            "Protección de la biodiversidad y los ecosistemas estratégicos (Amazonía, etc.).",
+            "Transición hacia energías limpias y renovables.",
+            "Gestión sostenible del agua y los recursos hídricos.",
+            "Adaptación al cambio climático y mitigación de sus efectos.",
+            "Desarrollo de ciudades sostenibles y resilientes.",
+        ]
+    },
 ];

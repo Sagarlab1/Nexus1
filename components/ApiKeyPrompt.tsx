@@ -1,9 +1,7 @@
-// FIX: Implemented a placeholder component to resolve module errors.
 import React from 'react';
 
-// This component is intentionally left blank to comply with the requirement
-// of not prompting the user for an API key. The key should be managed
-// exclusively through environment variables.
+// Per project guidelines, the API key must be sourced from environment variables.
+// This component should not be used to prompt for a key, so it renders nothing.
 const ApiKeyPrompt: React.FC = () => {
   return null;
 };
