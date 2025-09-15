@@ -1,13 +1,17 @@
+// FIX: Implement the useSound hook to resolve module import error.
 import { useCallback } from 'react';
 
-// FIX: Implement the useSound hook to resolve the module error.
-// This is a placeholder for sound playing functionality. In a real app, this could be
-// implemented with the Web Audio API or a library like 'howler.js'.
+/**
+ * A placeholder hook for playing UI sounds.
+ * In a real application, this would manage and play audio files.
+ * @returns A function to play a sound by name.
+ */
 export const useSound = () => {
-  const play = useCallback((sound: string) => {
-    // eslint-disable-next-line no-console
-    console.log(`Playing sound: ${sound}`);
+  const playSound = useCallback((soundName: string) => {
+    // This is a placeholder. In a real application, you would use
+    // the Web Audio API or an <audio> element to play a sound file.
+    // For example: new Audio(`/sounds/${soundName}.mp3`).play();
   }, []);
 
-  return play;
+  return playSound;
 };

@@ -23,6 +23,7 @@ interface SpeechRecognition extends EventTarget {
   onresult: (event: SpeechRecognitionEvent) => void;
   onerror: (event: Event) => void;
   onend: () => void;
+  onstart: () => void;
 }
 
 declare global {
@@ -49,7 +50,7 @@ const App: React.FC = () => {
   const [isListening, setIsListening] = React.useState(false);
   const [isSpeaking, setIsSpeaking] = React.useState(false);
   const recognitionRef = React.useRef<SpeechRecognition | null>(null);
-
+  
   React.useEffect(() => {
     if (API_KEY) {
       try {
@@ -64,7 +65,6 @@ const App: React.FC = () => {
   React.useEffect(() => {
     if (!ai) return;
 
-    // Clear previous chat history and state when agent changes
     setMessages([]);
     setIsLoading(false);
     
@@ -89,7 +89,6 @@ const App: React.FC = () => {
     setIsLoading(true);
     generationController.current = new AbortController();
     const agentMessageId = Date.now() + 1;
-    // Add a placeholder for the agent's response
     setMessages(prev => [...prev, { id: agentMessageId, text: '', sender: 'agent' }]);
 
     try {
@@ -110,8 +109,7 @@ const App: React.FC = () => {
          setMessages(prev => prev.map(msg => msg.id === agentMessageId ? { ...msg, text: "Generación detenida." } : msg));
        } else {
         console.error("Error sending message:", error);
-        const errorText = "Lo siento, ocurrió un error al procesar tu solicitud. Verifica la configuración de la API Key.";
-        setMessages(prev => prev.map(msg => msg.id === agentMessageId ? { ...msg, text: errorText } : msg));
+        setMessages(prev => prev.map(msg => msg.id === agentMessageId ? { ...msg, text: "La clave de API no fue encontrada. Por favor, configura la variable de entorno API_KEY." } : msg));
        }
     } finally {
       setIsLoading(false);
@@ -145,7 +143,6 @@ const App: React.FC = () => {
   const toggleListening = () => {
     if (isListening) {
       recognitionRef.current?.stop();
-      setIsListening(false);
     } else {
       const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (SpeechRecognitionAPI) {
@@ -161,17 +158,17 @@ const App: React.FC = () => {
             .map(result => result.transcript)
             .join('');
           setInput(transcript);
-          if (event.results[0].isFinal) {
-             recognition.stop();
-          }
         };
         
         recognition.onend = () => {
             setIsListening(false);
         };
+
+        recognition.onstart = () => {
+            setIsListening(true);
+        };
         
         recognition.start();
-        setIsListening(true);
       }
     }
   };
@@ -191,7 +188,7 @@ const App: React.FC = () => {
         <AgentPanel agents={AGENTS} activeAgent={activeAgent} onSelectAgent={setActiveAgent} />
       </div>
 
-      <div className="w-1/2 flex-shrink-0">
+      <div className="flex-1">
          {ai ? (
             <ChatWindow 
                 messages={messages}
@@ -207,15 +204,10 @@ const App: React.FC = () => {
                 onStopSpeaking={handleStopSpeaking}
             />
          ) : (
-            <div className="flex items-center justify-center h-full">
-                <p>Initializing AI...</p>
+            <div className="flex items-center justify-center h-full bg-gray-900/50 backdrop-blur-sm border border-gray-700/50 rounded-lg">
+                <p>Inicializando IA...</p>
             </div>
          )}
-      </div>
-      
-      <div className="w-1/4 bg-gray-900/50 backdrop-blur-sm border border-gray-700/50 rounded-lg p-6 shadow-lg shadow-black/20">
-        <h3 className="text-lg font-bold mb-4">Panel de Herramientas</h3>
-        <p className="text-gray-400 text-sm">Próximamente: Funcionalidades avanzadas y programas de estudio.</p>
       </div>
     </main>
   );
