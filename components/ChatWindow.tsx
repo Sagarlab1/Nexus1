@@ -58,7 +58,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   };
 
   return (
-    <div className="bg-gray-900/50 backdrop-blur-sm border border-gray-700/50 rounded-lg shadow-lg shadow-black/20 flex flex-col h-[calc(100vh-8rem)] md:h-[calc(100vh-4.5rem)]">
+    <div className="bg-gray-900/50 backdrop-blur-sm border border-gray-700/50 rounded-lg shadow-lg shadow-black/20 flex flex-col h-[calc(100vh-4rem)]">
       <div className="p-4 border-b border-gray-700/50 flex items-center">
         <activeAgent.icon
           className={`w-8 h-8 mr-3 text-${activeAgent.color}-400`}

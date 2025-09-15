@@ -7,38 +7,46 @@ interface LibraryModalProps {
 }
 
 const LibraryModal: React.FC<LibraryModalProps> = ({ isOpen, onClose }) => {
-  if (!isOpen) {
-    return null;
-  }
+  if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4" onClick={onClose}>
+    <div 
+      className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center backdrop-blur-sm"
+      onClick={onClose}
+    >
       <div 
-        className="bg-gray-800 border border-cyan-500/50 rounded-2xl shadow-2xl shadow-cyan-500/20 max-w-2xl w-full p-8 text-center relative transform transition-all animate-scaleIn"
+        className="bg-gray-800 border border-gray-700/50 rounded-xl shadow-2xl shadow-black/50 w-full max-w-lg m-4 text-white transform transition-all animate-fadeInUp"
         onClick={(e) => e.stopPropagation()}
       >
-        <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-white text-2xl font-bold">&times;</button>
-        
-        <div className="mx-auto mb-4 bg-cyan-500/20 rounded-full h-16 w-16 flex items-center justify-center">
-            <LibraryIcon className="w-8 h-8 text-cyan-400" />
+        <div className="p-8 text-center">
+          <div className="flex justify-center mb-6">
+             <div className="p-3 bg-cyan-400/10 rounded-full border border-cyan-500/30">
+                <LibraryIcon className="w-10 h-10 text-cyan-400" />
+            </div>
+          </div>
+          <h2 className="text-3xl font-bold text-center mb-2">Biblioteca</h2>
+          <p className="text-center text-gray-400 mb-6">Aquí encontrarás tus conversaciones guardadas, documentos y recursos generados.</p>
+          
+          <div className="bg-gray-900/50 p-6 rounded-lg">
+            <p className="text-gray-300">Esta función está en desarrollo.</p>
+          </div>
         </div>
-        
-        <h2 className="text-3xl font-bold text-white mb-3">Librería de Conocimiento</h2>
-        <p className="text-cyan-400 font-mono text-sm mb-6">TUS CONVERSACIONES Y ODISEAS GUARDADAS</p>
-        
-        <div className="text-gray-400 text-center py-12 bg-gray-900/50 rounded-lg">
-            <p>La librería está actualmente vacía.</p>
-            <p className="text-sm">Guarda conversaciones importantes u Odiseas para verlas aquí.</p>
+        <div className="p-4 bg-gray-900/50 rounded-b-xl flex justify-end">
+             <button 
+                onClick={onClose}
+                className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 px-4 rounded-lg transition-colors"
+             >
+                Cerrar
+            </button>
         </div>
-
       </div>
        <style>{`
-        @keyframes scaleIn {
-            from { opacity: 0; transform: scale(0.95); }
-            to { opacity: 1; transform: scale(1); }
+        @keyframes fadeInUp {
+          from { opacity: 0; transform: translateY(20px) scale(0.95); }
+          to { opacity: 1; transform: translateY(0) scale(1); }
         }
-        .animate-scaleIn {
-            animation: scaleIn 0.3s ease-out forwards;
+        .animate-fadeInUp {
+          animation: fadeInUp 0.3s ease-out forwards;
         }
       `}</style>
     </div>
