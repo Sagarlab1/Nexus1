@@ -7,7 +7,8 @@ import AgentPanel from './components/AgentPanel';
 import ChatWindow from './components/ChatWindow';
 import ApiKeyPrompt from './components/ApiKeyPrompt';
 import UserRankPanel from './components/UserRankPanel';
-import ApiStatusOverlay from './components/ApiStatusOverlay';
+// FIX: Import NexusLogo to fix reference error.
+import NexusLogo from './components/icons/NexusLogo';
 
 // --- Type definitions for Web Speech API ---
 interface SpeechRecognitionEvent extends Event {
@@ -36,10 +37,8 @@ declare global {
 // --- End of Type definitions ---
 
 const App: React.FC = () => {
-  const [apiKey] = React.useState<string | null>(process.env.API_KEY || null);
   const [ai, setAi] = React.useState<GoogleGenAI | null>(null);
-  const [apiStatus, setApiStatus] = React.useState<'checking' | 'ok' | 'error' | 'prompt'>('checking');
-  const [apiErrorDetails, setApiErrorDetails] = React.useState<string | null>(null);
+  const [isApiKeyNeeded, setIsApiKeyNeeded] = React.useState(false);
   const [isLoggedIn, setIsLoggedIn] = React.useState(false);
   const [activeAgent, setActiveAgent] = React.useState<Agent>(AGENTS[0]);
   const [chat, setChat] = React.useState<Chat | null>(null);
@@ -53,56 +52,39 @@ const App: React.FC = () => {
   const [isSpeaking, setIsSpeaking] = React.useState(false);
   const recognitionRef = React.useRef<SpeechRecognition | null>(null);
 
-  const initializeAndCheckApi = React.useCallback(async () => {
-    if (!apiKey) {
-      setApiStatus('prompt');
-      return;
-    }
-
-    setApiStatus('checking');
-    setApiErrorDetails(null);
-    let genAI: GoogleGenAI | null = null;
-
+  const initializeAi = React.useCallback(async (apiKey: string) => {
     try {
-      genAI = new GoogleGenAI({ apiKey });
-      setAi(genAI);
-    } catch (e) {
-      console.error("Error initializing GoogleGenAI", e);
-      setApiStatus('error');
-      if (e instanceof Error) {
-        setApiErrorDetails(`Error al inicializar la IA: ${e.message}\n\nPor favor, verifica que la clave de API sea correcta.`);
-      } else {
-        setApiErrorDetails(`Se produjo un error desconocido al inicializar la IA.`);
-      }
-      return;
-    }
-
-    try {
+      const genAI = new GoogleGenAI({ apiKey });
+      // Test the key with a simple request
       await genAI.models.generateContent({
         model: 'gemini-2.5-flash',
-        contents: 'Hola',
+        contents: 'test',
         config: { thinkingConfig: { thinkingBudget: 0 } }
       });
-      setApiStatus('ok');
+      setAi(genAI);
+      setIsApiKeyNeeded(false);
+      return true;
     } catch (e) {
-      setApiStatus('error');
-      console.error('[API Status Check Failed]', e);
-      if (e instanceof Error) {
-        setApiErrorDetails(e.message);
-      } else {
-        setApiErrorDetails(String(e));
-      }
+      console.error("Failed to initialize AI with provided key", e);
+      return false;
     }
-  }, [apiKey]);
+  }, []);
 
+  // Check for API key on initial load
   React.useEffect(() => {
     if (isLoggedIn) {
-      initializeAndCheckApi();
+      const storedApiKey = localStorage.getItem('user_api_key') || process.env.API_KEY;
+      if (storedApiKey) {
+        initializeAi(storedApiKey);
+      } else {
+        setIsApiKeyNeeded(true);
+      }
     }
-  }, [isLoggedIn, initializeAndCheckApi]);
+  }, [isLoggedIn, initializeAi]);
   
+  // Create a new chat session when the AI instance or agent changes
   React.useEffect(() => {
-    if (!ai || apiStatus !== 'ok') return;
+    if (!ai) return;
 
     setMessages([]);
     setIsLoading(false);
@@ -117,7 +99,15 @@ const App: React.FC = () => {
     setMessages([
         { id: 'initial', text: `Hola, soy ${activeAgent.name}. ¿En qué podemos profundizar hoy?`, sender: 'agent' }
     ]);
-  }, [ai, activeAgent, apiStatus]);
+  }, [ai, activeAgent]);
+
+  const handleKeyProvided = async (key: string) => {
+    const success = await initializeAi(key);
+    if (success) {
+      localStorage.setItem('user_api_key', key);
+    }
+    return success;
+  };
 
   const handleSendMessage = async () => {
     if (!input.trim() || !chat || isLoading) return;
@@ -221,12 +211,19 @@ const App: React.FC = () => {
     return <LoginScreen onLogin={() => setIsLoggedIn(true)} />;
   }
 
-  if (apiStatus === 'prompt') {
-    return <ApiKeyPrompt />;
+  if (isApiKeyNeeded) {
+    return <ApiKeyPrompt onKeySubmit={handleKeyProvided} />;
   }
-  
-  if (apiStatus === 'checking' || apiStatus === 'error') {
-    return <ApiStatusOverlay status={apiStatus} errorDetails={apiErrorDetails} onRetry={initializeAndCheckApi} />;
+
+  if (!ai) {
+     return (
+        <div className="fixed inset-0 bg-gray-900 z-50 flex items-center justify-center text-center p-4">
+            <div className="flex flex-col items-center gap-4 text-gray-300">
+                <NexusLogo className="w-16 h-16 text-cyan-400 animate-spin" />
+                <p className="text-xl">Inicializando IA...</p>
+            </div>
+        </div>
+     )
   }
 
   return (
