@@ -1,50 +1,12 @@
 import React from 'react';
-import { GoogleGenAI } from '@google/genai';
 import NexusLogo from './icons/NexusLogo';
 import ClipboardIcon from './icons/ClipboardIcon';
-import AlertTriangleIcon from './icons/AlertTriangleIcon';
 
-interface ApiKeyPromptProps {
-  onKeyVerified: (ai: GoogleGenAI, key: string) => void;
-}
-
-const ApiKeyPrompt: React.FC<ApiKeyPromptProps> = ({ onKeyVerified }) => {
-  const [keyInput, setKeyInput] = React.useState('');
-  const [isVerifying, setIsVerifying] = React.useState(false);
-  const [verificationError, setVerificationError] = React.useState<string | null>(null);
-
+const ApiKeyPrompt: React.FC = () => {
   const copyToClipboard = () => {
     navigator.clipboard.writeText('API_KEY').catch(err => {
       console.error('Failed to copy text: ', err);
     });
-  };
-
-  const handleVerify = async () => {
-    if (!keyInput.trim()) {
-      setVerificationError('Por favor, introduce una clave de API.');
-      return;
-    }
-    setIsVerifying(true);
-    setVerificationError(null);
-    try {
-      const testAi = new GoogleGenAI({ apiKey: keyInput });
-      // Make a lightweight call to verify the key and its permissions.
-      await testAi.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: 'Hola',
-        config: { thinkingConfig: { thinkingBudget: 0 } },
-      });
-      onKeyVerified(testAi, keyInput);
-    } catch (e) {
-      console.error("API Key verification failed", e);
-      if (e instanceof Error) {
-        setVerificationError(e.message);
-      } else {
-        setVerificationError('Se ha producido un error desconocido durante la verificación.');
-      }
-    } finally {
-      setIsVerifying(false);
-    }
   };
 
   return (
@@ -55,17 +17,15 @@ const ApiKeyPrompt: React.FC<ApiKeyPromptProps> = ({ onKeyVerified }) => {
         </div>
         <h1 className="text-3xl font-bold mb-4">Configuración Requerida</h1>
         <p className="text-gray-300 mb-8 max-w-3xl mx-auto">
-          La aplicación no ha detectado una clave de API de Google Gemini. La forma recomendada es configurarla en Vercel siguiendo estos 3 pasos.
+          Para que la aplicación funcione, la clave de API de Google Gemini debe ser configurada en tu plataforma de despliegue (ej. Vercel). Por favor, sigue estos 3 pasos.
         </p>
 
-        {/* Instructions */}
-        <div className="grid md:grid-cols-3 gap-6 text-left mb-10">
-          {/* Step 1, 2, 3 as before */}
+        <div className="grid md:grid-cols-3 gap-6 text-left">
            <div className="bg-gray-900/50 p-6 rounded-lg border border-gray-700">
             <p className="font-mono text-cyan-400 mb-2">Paso 1</p>
             <h2 className="text-xl font-semibold text-white mb-3">Ir a Vercel</h2>
             <p className="text-gray-400 text-sm">
-              En el panel de tu proyecto en Vercel, ve a: <br />
+              En el panel de tu proyecto, ve a: <br />
               <strong className="text-gray-300">Settings &rarr; Environment Variables</strong>.
             </p>
           </div>
@@ -89,46 +49,6 @@ const ApiKeyPrompt: React.FC<ApiKeyPromptProps> = ({ onKeyVerified }) => {
               <strong className="text-white">Este es el paso más importante.</strong> Vercel solo aplica las nuevas variables después de un nuevo despliegue ("redeploy").
             </p>
           </div>
-        </div>
-
-        {/* Verification Tool */}
-        <div className="border-t border-gray-700 pt-8">
-            <h2 className="text-xl font-semibold text-white mb-3">O prueba y guarda tu clave en este navegador</h2>
-            <p className="text-gray-400 text-sm mb-4 max-w-2xl mx-auto">
-                Si tienes problemas con Vercel, pega tu clave aquí para verificarla y guardarla en este navegador para no tener que volver a introducirla.
-            </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-2 max-w-xl mx-auto">
-                <input
-                    type="password"
-                    value={keyInput}
-                    onChange={(e) => setKeyInput(e.target.value)}
-                    placeholder="Pega tu clave de API de Google Gemini aquí..."
-                    className="w-full bg-gray-900 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                />
-                <button
-                    onClick={handleVerify}
-                    disabled={isVerifying}
-                    className="w-full sm:w-auto bg-cyan-600 hover:bg-cyan-500 disabled:bg-gray-600 disabled:cursor-wait text-white font-bold py-3 px-6 rounded-lg transition-colors flex items-center justify-center"
-                >
-                    {isVerifying ? (
-                        <>
-                            <NexusLogo className="w-5 h-5 mr-2 animate-spin" />
-                            Verificando...
-                        </>
-                    ) : (
-                        'Verificar y Guardar'
-                    )}
-                </button>
-            </div>
-            {verificationError && (
-                <div className="mt-4 p-4 bg-red-900/50 border border-red-500/50 text-red-300 rounded-lg max-w-xl mx-auto text-left flex items-start gap-3">
-                    <AlertTriangleIcon className="w-5 h-5 flex-shrink-0 mt-0.5" />
-                    <div>
-                        <p className="font-bold">Error de Verificación</p>
-                        <p className="font-mono text-xs mt-1">{verificationError}</p>
-                    </div>
-                </div>
-            )}
         </div>
       </div>
     </div>

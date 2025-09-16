@@ -8,7 +8,6 @@ import ChatWindow from './components/ChatWindow';
 import ApiKeyPrompt from './components/ApiKeyPrompt';
 import UserRankPanel from './components/UserRankPanel';
 import ApiStatusOverlay from './components/ApiStatusOverlay';
-import TemporaryKeyBanner from './components/TemporaryKeyBanner';
 
 // --- Type definitions for Web Speech API ---
 interface SpeechRecognitionEvent extends Event {
@@ -25,7 +24,6 @@ interface SpeechRecognition extends EventTarget {
   onerror: (event: Event) => void;
   onend: () => void;
   onstart: () => void;
-  // FIX: Add onresult property to fix TypeScript error.
   onresult: (event: SpeechRecognitionEvent) => void;
 }
 
@@ -38,10 +36,7 @@ declare global {
 // --- End of Type definitions ---
 
 const App: React.FC = () => {
-  const [apiKey, setApiKey] = React.useState<string | null>(() => {
-    return process.env.API_KEY || localStorage.getItem('user_provided_api_key');
-  });
-
+  const [apiKey] = React.useState<string | null>(process.env.API_KEY || null);
   const [ai, setAi] = React.useState<GoogleGenAI | null>(null);
   const [apiStatus, setApiStatus] = React.useState<'checking' | 'ok' | 'error' | 'prompt'>('checking');
   const [apiErrorDetails, setApiErrorDetails] = React.useState<string | null>(null);
@@ -52,9 +47,6 @@ const App: React.FC = () => {
   const [input, setInput] = React.useState('');
   const [isLoading, setIsLoading] = React.useState(false);
   const generationController = React.useRef<AbortController | null>(null);
-  const [isKeyTemporary, setIsKeyTemporary] = React.useState(() => {
-    return !process.env.API_KEY && !!localStorage.getItem('user_provided_api_key');
-  });
 
   // Voice state
   const [isListening, setIsListening] = React.useState(false);
@@ -224,24 +216,13 @@ const App: React.FC = () => {
       }
     }
   };
-  
-  const handleClearKey = () => {
-    localStorage.removeItem('user_provided_api_key');
-    window.location.reload();
-  };
 
   if (!isLoggedIn) {
     return <LoginScreen onLogin={() => setIsLoggedIn(true)} />;
   }
 
   if (apiStatus === 'prompt') {
-    return <ApiKeyPrompt onKeyVerified={(verifiedAi, verifiedKey) => {
-      localStorage.setItem('user_provided_api_key', verifiedKey);
-      setApiKey(verifiedKey);
-      setAi(verifiedAi);
-      setApiStatus('ok');
-      setIsKeyTemporary(true);
-    }} />;
+    return <ApiKeyPrompt />;
   }
   
   if (apiStatus === 'checking' || apiStatus === 'error') {
@@ -250,7 +231,6 @@ const App: React.FC = () => {
 
   return (
     <main className="w-screen h-screen bg-gray-900 text-white p-4 font-sans flex flex-col gap-4 overflow-hidden">
-       {isKeyTemporary && <TemporaryKeyBanner onClearKey={handleClearKey} />}
        <div className="flex flex-1 gap-4 overflow-hidden">
           <div className="w-1/4 flex flex-col gap-4">
             <UserRankPanel rank="Aprendiz Consciente" onHomeClick={() => {}} />
