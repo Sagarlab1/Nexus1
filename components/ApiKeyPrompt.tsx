@@ -1,6 +1,7 @@
 import React from 'react';
 import NexusLogo from './icons/NexusLogo';
 import ClipboardIcon from './icons/ClipboardIcon';
+import CheckIcon from './icons/CheckIcon';
 
 const ApiKeyPrompt: React.FC = () => {
   const copyToClipboard = () => {
@@ -29,17 +30,28 @@ const ApiKeyPrompt: React.FC = () => {
               <strong className="text-gray-300">Settings &rarr; Environment Variables</strong>.
             </p>
           </div>
-          <div className="bg-gray-900/50 p-6 rounded-lg border border-gray-700">
-            <p className="font-mono text-cyan-400 mb-2">Paso 2</p>
+          <div className="bg-gray-900/50 p-6 rounded-lg border-2 border-yellow-500/80">
+            <p className="font-mono text-yellow-400 mb-2">Paso 2</p>
             <h2 className="text-xl font-semibold text-white mb-3">Crear la Variable</h2>
             <p className="text-gray-400 text-sm mb-4">
               Crea una nueva variable con este nombre exacto:
             </p>
-            <div className="flex items-center gap-2 bg-gray-800 p-3 rounded-md">
+            <div className="flex items-center gap-2 bg-gray-800 p-3 rounded-md mb-4">
               <code className="bg-yellow-500/20 text-yellow-300 font-mono p-1 rounded">API_KEY</code>
               <button onClick={copyToClipboard} title="Copy to clipboard" className="ml-auto p-1 text-gray-400 hover:text-white transition-colors">
                 <ClipboardIcon className="w-5 h-5" />
               </button>
+            </div>
+            <div className="mt-4 pt-4 border-t border-gray-700">
+              <p className="text-yellow-300 font-semibold mb-2">¡Punto Clave!</p>
+              <p className="text-gray-400 text-sm mb-3">
+                Asegúrate de que la variable esté disponible para <strong className="text-gray-200">todos los entornos</strong>.
+              </p>
+              <ul className="text-sm space-y-1.5 text-gray-300">
+                  <li className="flex items-center gap-2"><CheckIcon className="w-4 h-4 text-green-400" /> Production</li>
+                  <li className="flex items-center gap-2"><CheckIcon className="w-4 h-4 text-green-400" /> Preview</li>
+                  <li className="flex items-center gap-2"><CheckIcon className="w-4 h-4 text-green-400" /> Development</li>
+              </ul>
             </div>
           </div>
           <div className="bg-cyan-900/50 p-6 rounded-lg border border-cyan-500">
