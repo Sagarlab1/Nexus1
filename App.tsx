@@ -94,7 +94,8 @@ const App: React.FC = () => {
   }, []);
 
   React.useEffect(() => {
-    if (isLoggedIn) {
+    // Only initialize from env var if it exists. Otherwise, wait for manual verification.
+    if (API_KEY && isLoggedIn) {
       initializeAndCheckApi();
     }
   }, [isLoggedIn, initializeAndCheckApi]);
@@ -215,15 +216,20 @@ const App: React.FC = () => {
     }
   };
 
-  if (!API_KEY) {
-    return <ApiKeyPrompt />;
+  // If no API key in env, and no AI instance verified manually, show prompt.
+  if (!API_KEY && !ai) {
+    return <ApiKeyPrompt onKeyVerified={(verifiedAi) => {
+      setAi(verifiedAi);
+      setApiStatus('ok'); // The key is already verified by the prompt
+    }} />;
   }
 
   if (!isLoggedIn) {
     return <LoginScreen onLogin={() => setIsLoggedIn(true)} />;
   }
   
-  if (apiStatus !== 'ok') {
+  // If we have an API_KEY from env but it's not checked yet, show status overlay.
+  if (API_KEY && apiStatus !== 'ok') {
     return <ApiStatusOverlay status={apiStatus} errorDetails={apiErrorDetails} onRetry={initializeAndCheckApi} />;
   }
 
