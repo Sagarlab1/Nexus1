@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { GoogleGenAI, Chat } from '@google/genai';
 import { AGENTS } from './constants';
 import type { Agent, Message } from './types';
@@ -36,40 +36,73 @@ declare global {
 // --- End of Type definitions ---
 
 const App: React.FC = () => {
-  const [isLoggedIn, setIsLoggedIn] = React.useState(false);
-  const [ai, setAi] = React.useState<GoogleGenAI | null>(null);
-  const [isLoadingAi, setIsLoadingAi] = React.useState(true);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [apiKeyStatus, setApiKeyStatus] = useState<'checking' | 'needed' | 'valid'>('checking');
+  const [ai, setAi] = useState<GoogleGenAI | null>(null);
   
-  const [activeAgent, setActiveAgent] = React.useState<Agent>(AGENTS[0]);
-  const [chat, setChat] = React.useState<Chat | null>(null);
-  const [messages, setMessages] = React.useState<Message[]>([]);
-  const [input, setInput] = React.useState('');
-  const [isLoading, setIsLoading] = React.useState(false);
+  const [activeAgent, setActiveAgent] = useState<Agent>(AGENTS[0]);
+  const [chat, setChat] = useState<Chat | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const generationController = React.useRef<AbortController | null>(null);
 
   // Voice state
-  const [isListening, setIsListening] = React.useState(false);
-  const [isSpeaking, setIsSpeaking] = React.useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
   const recognitionRef = React.useRef<SpeechRecognition | null>(null);
 
-  // Effect to initialize AI on startup from environment variable
-  React.useEffect(() => {
-    // The API key is expected to be injected by the build environment (e.g., Vercel)
-    const apiKey = process.env.API_KEY;
-
-    if (apiKey) {
-      try {
-        const genAI = new GoogleGenAI({ apiKey });
-        setAi(genAI);
-      } catch (error) {
-        console.error("Failed to initialize GoogleGenAI, likely due to an invalid key format.", error);
-      }
+  const verifyAndSetKey = useCallback(async (key: string): Promise<boolean> => {
+    if (!key) return false;
+    try {
+      const genAI = new GoogleGenAI({ apiKey: key });
+      // A lightweight, non-streaming call to verify the key works.
+      await genAI.models.generateContent({ model: 'gemini-2.5-flash', contents: 'test' });
+      setAi(genAI);
+      setApiKeyStatus('valid');
+      return true;
+    } catch (error) {
+      console.error("API Key verification failed:", error);
+      localStorage.removeItem('gemini_api_key');
+      return false;
     }
-    setIsLoadingAi(false);
   }, []);
+
+  useEffect(() => {
+    const initializeAI = async () => {
+      const storedKey = localStorage.getItem('gemini_api_key');
+      // We still check for env key as a fallback for correct Vercel setups
+      const envKey = process.env.API_KEY;
+      const keyToTry = storedKey || envKey;
+
+      if (keyToTry) {
+        const isValid = await verifyAndSetKey(keyToTry);
+        if (!isValid) {
+          setApiKeyStatus('needed');
+        }
+      } else {
+        setApiKeyStatus('needed');
+      }
+    };
+    initializeAI();
+  }, [verifyAndSetKey]);
   
-  // Create a new chat session when the AI instance or agent changes
-  React.useEffect(() => {
+  const handleKeySubmit = async (key: string) => {
+    const isValid = await verifyAndSetKey(key);
+    if (isValid) {
+      localStorage.setItem('gemini_api_key', key);
+    } else {
+      throw new Error("La clave de API es inválida o no se pudo verificar. Comprueba la clave y tu conexión.");
+    }
+  };
+
+  const handleForgetApiKey = () => {
+      localStorage.removeItem('gemini_api_key');
+      setAi(null);
+      setApiKeyStatus('needed');
+  };
+  
+  useEffect(() => {
     if (!ai) return;
 
     setMessages([]);
@@ -117,7 +150,7 @@ const App: React.FC = () => {
          if (error.name === 'AbortError') {
            errorMessage = "Generación detenida.";
          } else {
-           errorMessage = `Se produjo un error al comunicarse con la IA.\n\n*Detalles:* ${error.message}\n\nPor favor, verifica los siguientes puntos:\n1. La clave de API es válida y está correctamente configurada.\n2. La facturación está habilitada para tu proyecto de Google Cloud.\n3. La API de Gemini está activada en tu proyecto de Google Cloud.`;
+           errorMessage = `Se produjo un error al comunicarse con la IA.\n\n*Detalles:* ${error.message}`;
          }
        } else {
           errorMessage = `Se produjo un error inesperado.\n\n*Detalles:* ${String(error)}`;
@@ -189,26 +222,26 @@ const App: React.FC = () => {
     return <LoginScreen onLogin={() => setIsLoggedIn(true)} />;
   }
   
-  if (isLoadingAi) {
+  if (apiKeyStatus === 'checking') {
      return (
         <div className="fixed inset-0 bg-gray-900 z-50 flex items-center justify-center text-center p-4">
             <div className="flex flex-col items-center gap-4 text-gray-300">
                 <NexusLogo className="w-16 h-16 text-cyan-400 animate-spin" />
-                <p className="text-xl">Inicializando...</p>
+                <p className="text-xl">Verificando configuración...</p>
             </div>
         </div>
      );
   }
 
-  if (!ai) {
-    return <ApiKeyPrompt />;
+  if (apiKeyStatus === 'needed' || !ai) {
+    return <ApiKeyPrompt onKeySubmit={handleKeySubmit} />;
   }
 
   return (
     <main className="w-screen h-screen bg-gray-900 text-white p-4 font-sans flex flex-col gap-4 overflow-hidden">
        <div className="flex flex-1 gap-4 overflow-hidden">
           <div className="w-1/4 flex flex-col gap-4">
-            <UserRankPanel rank="Aprendiz Consciente" onHomeClick={() => {}} />
+            <UserRankPanel rank="Aprendiz Consciente" onHomeClick={() => {}} onForgetApiKey={handleForgetApiKey} />
             <AgentPanel agents={AGENTS} activeAgent={activeAgent} onSelectAgent={setActiveAgent} />
           </div>
 

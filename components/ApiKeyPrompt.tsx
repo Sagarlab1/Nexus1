@@ -1,74 +1,65 @@
 import React, { useState } from 'react';
 import NexusLogo from './icons/NexusLogo';
-import ClipboardIcon from './icons/ClipboardIcon';
-import CheckIcon from './icons/CheckIcon';
 
-const ApiKeyPrompt: React.FC = () => {
-  const [copied, setCopied] = useState(false);
+interface ApiKeyPromptProps {
+    onKeySubmit: (key: string) => Promise<void>;
+}
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText('API_KEY');
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
+const ApiKeyPrompt: React.FC<ApiKeyPromptProps> = ({ onKeySubmit }) => {
+    const [apiKey, setApiKey] = useState('');
+    const [isVerifying, setIsVerifying] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
-  return (
-    <div className="fixed inset-0 bg-gray-900 z-50 flex items-center justify-center text-center p-4">
-      <div className="bg-gray-800 border border-cyan-500/30 rounded-2xl shadow-2xl w-full max-w-4xl m-4 text-white p-8">
-        <div className="inline-block p-3 bg-cyan-400/10 rounded-full border border-cyan-500/30 mb-4">
-            <NexusLogo className="w-8 h-8 text-cyan-400" />
-        </div>
-        <h1 className="text-3xl font-bold mb-2">Configuración Requerida</h1>
-        <p className="text-gray-300 mb-8 max-w-2xl mx-auto">
-            Para que la aplicación funcione, la clave de API de Google Gemini debe ser configurada en tu plataforma de despliegue (ej. Vercel). Por favor, sigue estos 3 pasos.
-        </p>
-        
-        <div className="grid md:grid-cols-3 gap-6 text-left">
-            {/* Step 1 */}
-            <div className="bg-gray-900/50 p-6 rounded-lg border border-gray-700">
-                <p className="text-sm font-semibold text-cyan-400 mb-2">Paso 1</p>
-                <h2 className="text-xl font-bold mb-3">Ir a Vercel</h2>
-                <p className="text-gray-400">En el panel de tu proyecto, ve a: <br /><strong className="text-gray-200">Settings &rarr; Environment Variables</strong>.</p>
-            </div>
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!apiKey.trim() || isVerifying) return;
 
-            {/* Step 2 */}
-            <div className="bg-gray-900/50 p-6 rounded-lg border-2 border-yellow-500/50">
-                <p className="text-sm font-semibold text-yellow-400 mb-2">Paso 2</p>
-                <h2 className="text-xl font-bold mb-3">Crear la Variable</h2>
-                <p className="text-gray-400 mb-4">Crea una nueva variable con este nombre exacto:</p>
-                <div className="bg-gray-800 border border-gray-600 rounded-md px-3 py-2 flex items-center justify-between">
-                    <span className="font-mono text-yellow-300">API_KEY</span>
-                    <button onClick={handleCopy} className="text-gray-400 hover:text-white transition-colors">
-                        {copied ? <CheckIcon className="w-5 h-5 text-green-400" /> : <ClipboardIcon className="w-5 h-5" />}
+        setIsVerifying(true);
+        setError(null);
+
+        try {
+            await onKeySubmit(apiKey.trim());
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Ocurrió un error desconocido.');
+        } finally {
+            setIsVerifying(false);
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 bg-gray-900 z-50 flex items-center justify-center p-4">
+            <div className="w-full max-w-md m-auto bg-gray-800 border border-cyan-500/30 rounded-2xl shadow-2xl text-white p-8 text-center">
+                <NexusLogo className="w-16 h-16 text-cyan-400 mx-auto mb-6" />
+                <h1 className="text-3xl font-bold mb-2">Configuración Requerida</h1>
+                <p className="text-gray-300 mb-6">
+                    Por favor, introduce tu clave de API de Google Gemini para continuar.
+                </p>
+
+                <form onSubmit={handleSubmit}>
+                    <input
+                        type="password"
+                        value={apiKey}
+                        onChange={(e) => setApiKey(e.target.value)}
+                        placeholder="Pega tu clave de API aquí"
+                        className="w-full bg-gray-900/50 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                        disabled={isVerifying}
+                    />
+                    {error && <p className="text-red-400 text-sm mt-3">{error}</p>}
+                    <button
+                        type="submit"
+                        disabled={!apiKey.trim() || isVerifying}
+                        className="mt-6 w-full bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white font-bold py-3 px-8 rounded-lg text-lg transition-transform transform hover:scale-105 shadow-lg shadow-cyan-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        {isVerifying ? 'Verificando...' : 'Guardar y Continuar'}
                     </button>
-                </div>
-                 <div className="mt-4 pt-4 border-t border-gray-700">
-                    <p className="text-sm font-semibold text-yellow-400 mb-2">¡Punto Clave!</p>
-                    <p className="text-xs text-gray-400 mb-2">Asegúrate de que la variable esté disponible para todos los entornos:</p>
-                    <ul className="text-xs space-y-1 text-gray-300">
-                        <li className="flex items-center"><CheckIcon className="w-4 h-4 mr-2 text-green-400" /> Producción</li>
-                        <li className="flex items-center"><CheckIcon className="w-4 h-4 mr-2 text-green-400" /> Vista Previa (Preview)</li>
-                        <li className="flex items-center"><CheckIcon className="w-4 h-4 mr-2 text-green-400" /> Desarrollo</li>
-                    </ul>
-                </div>
-            </div>
+                </form>
 
-            {/* Step 3 */}
-            <div className="bg-cyan-500/10 p-6 rounded-lg border border-cyan-500/50 ring-2 ring-cyan-500/20">
-                <p className="text-sm font-semibold text-cyan-400 mb-2">Paso 3</p>
-                <h2 className="text-xl font-bold mb-3">¡Volver a Desplegar!</h2>
-                <p className="text-gray-300">
-                    <strong className="text-white">Este es el paso más importante.</strong> Vercel solo aplica las nuevas variables después de un nuevo despliegue ("redeploy").
+                <p className="text-xs text-gray-500 mt-6">
+                    Tu clave se guardará de forma segura en tu navegador. Puedes obtenerla en <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="underline hover:text-cyan-400">Google AI Studio</a>.
                 </p>
             </div>
         </div>
-
-        <p className="text-xs text-gray-500 mt-8">
-            Puedes obtener tu clave en <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="underline hover:text-cyan-400">Google AI Studio</a>.
-        </p>
-      </div>
-    </div>
-  );
+    );
 };
 
 export default ApiKeyPrompt;

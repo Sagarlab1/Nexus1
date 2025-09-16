@@ -1,12 +1,14 @@
 import React from 'react';
 import NexusLogo from './icons/NexusLogo';
+import TrashIcon from './icons/TrashIcon';
 
 interface UserRankPanelProps {
   rank: string;
   onHomeClick: () => void;
+  onForgetApiKey: () => void;
 }
 
-const UserRankPanel: React.FC<UserRankPanelProps> = ({ rank, onHomeClick }) => {
+const UserRankPanel: React.FC<UserRankPanelProps> = ({ rank, onHomeClick, onForgetApiKey }) => {
   return (
     <div className="bg-gray-900/50 backdrop-blur-sm border border-gray-700/50 rounded-lg p-6 shadow-lg shadow-black/20 text-white">
         <button onClick={onHomeClick} className="w-full flex items-center text-left mb-4 group">
@@ -20,6 +22,13 @@ const UserRankPanel: React.FC<UserRankPanelProps> = ({ rank, onHomeClick }) => {
         <p className="text-sm text-gray-400 mb-1">Tu Rango Actual</p>
         <p className="text-2xl font-bold">{rank}</p>
       </div>
+       <button 
+        onClick={onForgetApiKey}
+        className="w-full mt-4 flex items-center justify-center gap-2 text-xs text-gray-500 hover:text-red-400 transition-colors p-2 rounded-md hover:bg-red-500/10"
+      >
+        <TrashIcon className="w-4 h-4" />
+        Olvidar Clave de API
+      </button>
     </div>
   );
 };
