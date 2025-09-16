@@ -8,6 +8,18 @@ import ChatWindow from './components/ChatWindow';
 import ApiKeyPrompt from './components/ApiKeyPrompt';
 import UserRankPanel from './components/UserRankPanel';
 import NexusLogo from './components/icons/NexusLogo';
+import ProgramsPage from './components/ProgramsPage';
+import LatinoChallengesPage from './components/LatinoChallengesPage';
+import PremiumModal from './components/PremiumModal';
+import NexusZeroPage from './components/NexusZeroPage';
+import CriticalThinkingCoursePage from './components/CriticalThinkingCoursePage';
+import CreativityCoursePage from './components/CreativityCoursePage';
+import EntrepreneurshipCoursePage from './components/EntrepreneurshipCoursePage';
+import GenerativeAiCoursePage from './components/GenerativeAiCoursePage';
+import FloatingChatButton from './components/FloatingChatButton';
+import ChatModal from './components/ChatModal';
+import CognitiveGymPage from './components/CognitiveGymPage';
+
 
 // --- Type definitions for Web Speech API ---
 interface SpeechRecognitionEvent extends Event {
@@ -35,10 +47,12 @@ declare global {
 }
 // --- End of Type definitions ---
 
+export type View = 'chat' | 'programs' | 'challenges' | 'nexus_zero_course' | 'critical_thinking_course' | 'creativity_course' | 'entrepreneurship_course' | 'gen_ai_course' | 'cognitive_gym';
+
 const App: React.FC = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [apiKeyStatus, setApiKeyStatus] = useState<'checking' | 'needed' | 'valid'>('checking');
-  const [apiKeyError, setApiKeyError] = useState<string | null>(null);
+  const [apiKey, setApiKey] = useState<string | null>(null);
+  const [isCheckingKey, setIsCheckingKey] = useState(true);
   const [ai, setAi] = useState<GoogleGenAI | null>(null);
   
   const [activeAgent, setActiveAgent] = useState<Agent>(AGENTS[0]);
@@ -48,49 +62,29 @@ const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const generationController = React.useRef<AbortController | null>(null);
 
+  // Navigation and Modals
+  const [activeView, setActiveView] = useState<View>('nexus_zero_course');
+  const [isPremiumModalOpen, setIsPremiumModalOpen] = useState(false);
+  const [isChatModalOpen, setIsChatModalOpen] = useState(false);
+
+
   // Voice state
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const recognitionRef = React.useRef<SpeechRecognition | null>(null);
 
-  const initializeAndVerify = useCallback(async (key: string | null) => {
-    if (!key) {
-      setApiKeyStatus('needed');
-      return;
-    }
-
-    setApiKeyStatus('checking');
-    setApiKeyError(null);
-
-    try {
-      const genAI = new GoogleGenAI({ apiKey: key });
-      await genAI.models.generateContent({ model: 'gemini-2.5-flash', contents: 'test' });
-      
-      setAi(genAI);
-      setApiKeyStatus('valid');
-      if (localStorage.getItem('gemini_api_key') !== key) {
-        localStorage.setItem('gemini_api_key', key);
-      }
-    } catch (error) {
-      console.error("API Key verification failed:", error);
-      const message = error instanceof Error ? error.message : String(error);
-      setApiKeyError(`La verificación de la clave falló. Esto puede deberse a:\n- La clave es incorrecta o no tiene permisos.\n- La facturación no está activada en tu proyecto de Google Cloud.\n- La API de Gemini no está habilitada.\n\nDetalle del error: ${message}`);
-      setApiKeyStatus('needed');
-      localStorage.removeItem('gemini_api_key');
-    }
-  }, []);
-
   useEffect(() => {
-    const storedKey = localStorage.getItem('gemini_api_key');
-    initializeAndVerify(storedKey);
-  }, [initializeAndVerify]);
+    // In a production environment, API keys should be handled by a backend proxy.
+    // For this prototype, we use the provided environment variable.
+    const keyFromEnv = process.env.API_KEY;
+    if (keyFromEnv) {
+      setApiKey(keyFromEnv);
+      const genAI = new GoogleGenAI({ apiKey: keyFromEnv });
+      setAi(genAI);
+    }
+    setIsCheckingKey(false);
+  }, []);
   
-  const handleForgetApiKey = () => {
-      localStorage.removeItem('gemini_api_key');
-      setAi(null);
-      setApiKeyStatus('needed');
-      setApiKeyError(null);
-  };
   
   useEffect(() => {
     if (!ai) return;
@@ -101,7 +95,7 @@ const App: React.FC = () => {
     const newChat = ai.chats.create({
       model: 'gemini-2.5-flash',
       config: {
-        systemInstruction: `Eres ${activeAgent.name}, un ${activeAgent.description}. Tu propósito es ayudar al usuario a expandir su intelecto. Adopta un tono sabio, inspirador y servicial.`
+        systemInstruction: activeAgent.prompt
       },
     });
     setChat(newChat);
@@ -208,35 +202,38 @@ const App: React.FC = () => {
     }
   };
 
-  if (!isLoggedIn) {
-    return <LoginScreen onLogin={() => setIsLoggedIn(true)} />;
-  }
+  const handleNavigate = (view: View, agentId?: string) => {
+    setActiveView(view);
+    if (agentId) {
+        const agentToSelect = AGENTS.find(a => a.id === agentId);
+        if (agentToSelect) {
+            setActiveAgent(agentToSelect);
+        }
+    }
+  };
   
-  if (apiKeyStatus === 'checking') {
-     return (
-        <div className="fixed inset-0 bg-gray-900 z-50 flex items-center justify-center text-center p-4">
-            <div className="flex flex-col items-center gap-4 text-gray-300">
-                <NexusLogo className="w-16 h-16 text-cyan-400 animate-spin" />
-                <p className="text-xl">Verificando clave de API...</p>
-            </div>
-        </div>
-     );
-  }
-
-  if (apiKeyStatus === 'needed' || !ai) {
-    return <ApiKeyPrompt onKeySubmit={initializeAndVerify} error={apiKeyError} />;
-  }
-
-  return (
-    <main className="w-screen h-screen bg-gray-900 text-white p-4 font-sans flex flex-col gap-4 overflow-hidden">
-       <div className="flex flex-1 gap-4 overflow-hidden">
-          <div className="w-1/4 flex flex-col gap-4">
-            <UserRankPanel rank="Aprendiz Consciente" onHomeClick={() => {}} onForgetApiKey={handleForgetApiKey} />
-            <AgentPanel agents={AGENTS} activeAgent={activeAgent} onSelectAgent={setActiveAgent} />
-          </div>
-
-          <div className="flex-1">
-            <ChatWindow 
+  const renderContent = () => {
+    switch (activeView) {
+      case 'nexus_zero_course':
+        return <NexusZeroPage onNavigateToPrograms={() => handleNavigate('programs')} />;
+      case 'programs':
+        return <ProgramsPage onOpenPremium={() => setIsPremiumModalOpen(true)} />;
+      case 'challenges':
+        return <LatinoChallengesPage />;
+      case 'cognitive_gym':
+        return <CognitiveGymPage />;
+      case 'critical_thinking_course':
+        return <CriticalThinkingCoursePage />;
+      case 'creativity_course':
+        return <CreativityCoursePage />;
+      case 'entrepreneurship_course':
+        return <EntrepreneurshipCoursePage />;
+      case 'gen_ai_course':
+        return <GenerativeAiCoursePage />;
+      case 'chat':
+      default:
+        return (
+           <ChatWindow 
                 messages={messages}
                 activeAgent={activeAgent}
                 onSendMessage={handleSendMessage}
@@ -249,6 +246,70 @@ const App: React.FC = () => {
                 isSpeaking={isSpeaking}
                 onStopSpeaking={handleStopSpeaking}
             />
+        );
+    }
+  }
+
+
+  if (!isLoggedIn) {
+    return <LoginScreen onLogin={() => setIsLoggedIn(true)} />;
+  }
+  
+  if (isCheckingKey) {
+     return (
+        <div className="fixed inset-0 bg-gray-900 z-50 flex items-center justify-center text-center p-4">
+            <div className="flex flex-col items-center gap-4 text-gray-300">
+                <NexusLogo className="w-16 h-16 text-cyan-400 animate-spin" />
+                <p className="text-xl">Inicializando sistema...</p>
+            </div>
+        </div>
+     );
+  }
+
+  if (!apiKey || !ai) {
+    return <ApiKeyPrompt />;
+  }
+  
+  const isCourseView = ['nexus_zero_course', 'critical_thinking_course', 'creativity_course', 'entrepreneurship_course', 'gen_ai_course'].includes(activeView);
+
+  return (
+    <main className="w-screen h-screen bg-gray-900 text-white p-4 font-sans flex flex-col gap-4 overflow-hidden">
+       {isPremiumModalOpen && <PremiumModal onClose={() => setIsPremiumModalOpen(false)} />}
+       {isChatModalOpen && (
+          <ChatModal 
+            onClose={() => setIsChatModalOpen(false)}
+            messages={messages}
+            activeAgent={activeAgent}
+            onSendMessage={handleSendMessage}
+            isLoading={isLoading}
+            onStopGeneration={stopGeneration}
+            input={input}
+            setInput={setInput}
+            isListening={isListening}
+            onToggleListening={toggleListening}
+            isSpeaking={isSpeaking}
+            onStopSpeaking={handleStopSpeaking}
+          />
+        )}
+       <div className="flex flex-1 gap-4 overflow-hidden">
+          <div className="w-1/4 flex flex-col gap-4 overflow-y-auto">
+            <UserRankPanel 
+                rank="Aprendiz Consciente" 
+                onNavigate={handleNavigate} 
+                activeView={activeView}
+                onOpenPremium={() => setIsPremiumModalOpen(true)}
+            />
+            <AgentPanel agents={AGENTS} activeAgent={activeAgent} onSelectAgent={setActiveAgent} />
+          </div>
+
+          <div className="flex-1 relative">
+            {renderContent()}
+            {isCourseView && (
+              <FloatingChatButton 
+                agent={activeAgent} 
+                onClick={() => setIsChatModalOpen(true)} 
+              />
+            )}
           </div>
       </div>
     </main>

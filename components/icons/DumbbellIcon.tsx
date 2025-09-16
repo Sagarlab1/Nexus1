@@ -1,6 +1,7 @@
+
 import React from 'react';
 
-const CheckIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+const DumbbellIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
     width="24"
@@ -13,8 +14,11 @@ const CheckIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
     strokeLinejoin="round"
     {...props}
   >
-    <polyline points="20 6 9 17 4 12" />
+    <path d="M4 8H6V16H4zM18 8H20V16H18z" />
+    <path d="M6 12H18" />
+    <path d="M2 10H4V14H2z" />
+    <path d="M20 10H22V14H20z" />
   </svg>
 );
 
-export default CheckIcon;
+export default DumbbellIcon;

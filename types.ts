@@ -19,5 +19,6 @@ export interface Agent {
   description: string;
   icon: React.FC<React.SVGProps<SVGSVGElement>>;
   color: string;
+  prompt: string;
   personalities: Personality[];
 }
