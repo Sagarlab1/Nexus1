@@ -38,6 +38,7 @@ declare global {
 const App: React.FC = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [apiKeyStatus, setApiKeyStatus] = useState<'checking' | 'needed' | 'valid'>('checking');
+  const [apiKeyError, setApiKeyError] = useState<string | null>(null);
   const [ai, setAi] = useState<GoogleGenAI | null>(null);
   
   const [activeAgent, setActiveAgent] = useState<Agent>(AGENTS[0]);
@@ -52,54 +53,43 @@ const App: React.FC = () => {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const recognitionRef = React.useRef<SpeechRecognition | null>(null);
 
-  const verifyAndSetKey = useCallback(async (key: string): Promise<boolean> => {
-    if (!key) return false;
+  const initializeAndVerify = useCallback(async (key: string | null) => {
+    if (!key) {
+      setApiKeyStatus('needed');
+      return;
+    }
+
+    setApiKeyStatus('checking');
+    setApiKeyError(null);
+
     try {
       const genAI = new GoogleGenAI({ apiKey: key });
-      // A lightweight, non-streaming call to verify the key works.
       await genAI.models.generateContent({ model: 'gemini-2.5-flash', contents: 'test' });
+      
       setAi(genAI);
       setApiKeyStatus('valid');
-      return true;
+      if (localStorage.getItem('gemini_api_key') !== key) {
+        localStorage.setItem('gemini_api_key', key);
+      }
     } catch (error) {
       console.error("API Key verification failed:", error);
+      const message = error instanceof Error ? error.message : String(error);
+      setApiKeyError(`La verificación de la clave falló. Esto puede deberse a:\n- La clave es incorrecta o no tiene permisos.\n- La facturación no está activada en tu proyecto de Google Cloud.\n- La API de Gemini no está habilitada.\n\nDetalle del error: ${message}`);
+      setApiKeyStatus('needed');
       localStorage.removeItem('gemini_api_key');
-      return false;
     }
   }, []);
 
   useEffect(() => {
-    const initializeAI = async () => {
-      const storedKey = localStorage.getItem('gemini_api_key');
-      // We still check for env key as a fallback for correct Vercel setups
-      const envKey = process.env.API_KEY;
-      const keyToTry = storedKey || envKey;
-
-      if (keyToTry) {
-        const isValid = await verifyAndSetKey(keyToTry);
-        if (!isValid) {
-          setApiKeyStatus('needed');
-        }
-      } else {
-        setApiKeyStatus('needed');
-      }
-    };
-    initializeAI();
-  }, [verifyAndSetKey]);
+    const storedKey = localStorage.getItem('gemini_api_key');
+    initializeAndVerify(storedKey);
+  }, [initializeAndVerify]);
   
-  const handleKeySubmit = async (key: string) => {
-    const isValid = await verifyAndSetKey(key);
-    if (isValid) {
-      localStorage.setItem('gemini_api_key', key);
-    } else {
-      throw new Error("La clave de API es inválida o no se pudo verificar. Comprueba la clave y tu conexión.");
-    }
-  };
-
   const handleForgetApiKey = () => {
       localStorage.removeItem('gemini_api_key');
       setAi(null);
       setApiKeyStatus('needed');
+      setApiKeyError(null);
   };
   
   useEffect(() => {
@@ -227,14 +217,14 @@ const App: React.FC = () => {
         <div className="fixed inset-0 bg-gray-900 z-50 flex items-center justify-center text-center p-4">
             <div className="flex flex-col items-center gap-4 text-gray-300">
                 <NexusLogo className="w-16 h-16 text-cyan-400 animate-spin" />
-                <p className="text-xl">Verificando configuración...</p>
+                <p className="text-xl">Verificando clave de API...</p>
             </div>
         </div>
      );
   }
 
   if (apiKeyStatus === 'needed' || !ai) {
-    return <ApiKeyPrompt onKeySubmit={handleKeySubmit} />;
+    return <ApiKeyPrompt onKeySubmit={initializeAndVerify} error={apiKeyError} />;
   }
 
   return (
