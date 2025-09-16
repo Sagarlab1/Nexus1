@@ -8,6 +8,7 @@ import ChatWindow from './components/ChatWindow';
 import ApiKeyPrompt from './components/ApiKeyPrompt';
 import UserRankPanel from './components/UserRankPanel';
 import ApiStatusOverlay from './components/ApiStatusOverlay';
+import TemporaryKeyBanner from './components/TemporaryKeyBanner';
 
 // --- Type definitions for Web Speech API ---
 interface SpeechRecognitionEvent extends Event {
@@ -48,6 +49,7 @@ const App: React.FC = () => {
   const [input, setInput] = React.useState('');
   const [isLoading, setIsLoading] = React.useState(false);
   const generationController = React.useRef<AbortController | null>(null);
+  const [isKeyTemporary, setIsKeyTemporary] = React.useState(false);
 
   // Voice state
   const [isListening, setIsListening] = React.useState(false);
@@ -221,6 +223,7 @@ const App: React.FC = () => {
     return <ApiKeyPrompt onKeyVerified={(verifiedAi) => {
       setAi(verifiedAi);
       setApiStatus('ok'); // The key is already verified by the prompt
+      setIsKeyTemporary(true);
     }} />;
   }
 
@@ -234,26 +237,29 @@ const App: React.FC = () => {
   }
 
   return (
-    <main className="w-screen h-screen bg-gray-900 text-white p-4 font-sans flex gap-4 overflow-hidden">
-      <div className="w-1/4 flex flex-col gap-4">
-        <UserRankPanel rank="Aprendiz Consciente" onHomeClick={() => {}} />
-        <AgentPanel agents={AGENTS} activeAgent={activeAgent} onSelectAgent={setActiveAgent} />
-      </div>
+    <main className="w-screen h-screen bg-gray-900 text-white p-4 font-sans flex flex-col gap-4 overflow-hidden">
+       {isKeyTemporary && <TemporaryKeyBanner />}
+       <div className="flex flex-1 gap-4 overflow-hidden">
+          <div className="w-1/4 flex flex-col gap-4">
+            <UserRankPanel rank="Aprendiz Consciente" onHomeClick={() => {}} />
+            <AgentPanel agents={AGENTS} activeAgent={activeAgent} onSelectAgent={setActiveAgent} />
+          </div>
 
-      <div className="flex-1">
-        <ChatWindow 
-            messages={messages}
-            activeAgent={activeAgent}
-            onSendMessage={handleSendMessage}
-            isLoading={isLoading}
-            onStopGeneration={stopGeneration}
-            input={input}
-            setInput={setInput}
-            isListening={isListening}
-            onToggleListening={toggleListening}
-            isSpeaking={isSpeaking}
-            onStopSpeaking={handleStopSpeaking}
-        />
+          <div className="flex-1">
+            <ChatWindow 
+                messages={messages}
+                activeAgent={activeAgent}
+                onSendMessage={handleSendMessage}
+                isLoading={isLoading}
+                onStopGeneration={stopGeneration}
+                input={input}
+                setInput={setInput}
+                isListening={isListening}
+                onToggleListening={toggleListening}
+                isSpeaking={isSpeaking}
+                onStopSpeaking={handleStopSpeaking}
+            />
+          </div>
       </div>
     </main>
   );
