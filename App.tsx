@@ -75,11 +75,14 @@ const App: React.FC = () => {
 
   useEffect(() => {
     // In a production environment, API keys should be handled by a backend proxy.
-    // For this prototype, we use the provided environment variable.
+    // For this prototype, we prioritize the env variable, but fall back to localStorage.
     const keyFromEnv = process.env.API_KEY;
-    if (keyFromEnv) {
-      setApiKey(keyFromEnv);
-      const genAI = new GoogleGenAI({ apiKey: keyFromEnv });
+    const keyFromStorage = localStorage.getItem('gemini_api_key');
+    const effectiveApiKey = keyFromEnv || keyFromStorage;
+
+    if (effectiveApiKey) {
+      setApiKey(effectiveApiKey);
+      const genAI = new GoogleGenAI({ apiKey: effectiveApiKey });
       setAi(genAI);
     }
     setIsCheckingKey(false);
