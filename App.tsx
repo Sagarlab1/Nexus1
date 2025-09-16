@@ -22,10 +22,11 @@ interface SpeechRecognition extends EventTarget {
   lang: string;
   start(): void;
   stop(): void;
-  onresult: (event: SpeechRecognitionEvent) => void;
   onerror: (event: Event) => void;
   onend: () => void;
   onstart: () => void;
+  // FIX: Add onresult property to fix TypeScript error.
+  onresult: (event: SpeechRecognitionEvent) => void;
 }
 
 declare global {
@@ -36,11 +37,13 @@ declare global {
 }
 // --- End of Type definitions ---
 
-const API_KEY = process.env.API_KEY;
-
 const App: React.FC = () => {
+  const [apiKey, setApiKey] = React.useState<string | null>(() => {
+    return process.env.API_KEY || localStorage.getItem('user_provided_api_key');
+  });
+
   const [ai, setAi] = React.useState<GoogleGenAI | null>(null);
-  const [apiStatus, setApiStatus] = React.useState<'checking' | 'ok' | 'error'>('checking');
+  const [apiStatus, setApiStatus] = React.useState<'checking' | 'ok' | 'error' | 'prompt'>('checking');
   const [apiErrorDetails, setApiErrorDetails] = React.useState<string | null>(null);
   const [isLoggedIn, setIsLoggedIn] = React.useState(false);
   const [activeAgent, setActiveAgent] = React.useState<Agent>(AGENTS[0]);
@@ -49,7 +52,9 @@ const App: React.FC = () => {
   const [input, setInput] = React.useState('');
   const [isLoading, setIsLoading] = React.useState(false);
   const generationController = React.useRef<AbortController | null>(null);
-  const [isKeyTemporary, setIsKeyTemporary] = React.useState(false);
+  const [isKeyTemporary, setIsKeyTemporary] = React.useState(() => {
+    return !process.env.API_KEY && !!localStorage.getItem('user_provided_api_key');
+  });
 
   // Voice state
   const [isListening, setIsListening] = React.useState(false);
@@ -57,14 +62,17 @@ const App: React.FC = () => {
   const recognitionRef = React.useRef<SpeechRecognition | null>(null);
 
   const initializeAndCheckApi = React.useCallback(async () => {
-    if (!API_KEY) return;
+    if (!apiKey) {
+      setApiStatus('prompt');
+      return;
+    }
 
     setApiStatus('checking');
     setApiErrorDetails(null);
     let genAI: GoogleGenAI | null = null;
 
     try {
-      genAI = new GoogleGenAI({ apiKey: API_KEY });
+      genAI = new GoogleGenAI({ apiKey });
       setAi(genAI);
     } catch (e) {
       console.error("Error initializing GoogleGenAI", e);
@@ -93,11 +101,10 @@ const App: React.FC = () => {
         setApiErrorDetails(String(e));
       }
     }
-  }, []);
+  }, [apiKey]);
 
   React.useEffect(() => {
-    // Only initialize from env var if it exists. Otherwise, wait for manual verification.
-    if (API_KEY && isLoggedIn) {
+    if (isLoggedIn) {
       initializeAndCheckApi();
     }
   }, [isLoggedIn, initializeAndCheckApi]);
@@ -217,28 +224,33 @@ const App: React.FC = () => {
       }
     }
   };
-
-  // If no API key in env, and no AI instance verified manually, show prompt.
-  if (!API_KEY && !ai) {
-    return <ApiKeyPrompt onKeyVerified={(verifiedAi) => {
-      setAi(verifiedAi);
-      setApiStatus('ok'); // The key is already verified by the prompt
-      setIsKeyTemporary(true);
-    }} />;
-  }
+  
+  const handleClearKey = () => {
+    localStorage.removeItem('user_provided_api_key');
+    window.location.reload();
+  };
 
   if (!isLoggedIn) {
     return <LoginScreen onLogin={() => setIsLoggedIn(true)} />;
   }
+
+  if (apiStatus === 'prompt') {
+    return <ApiKeyPrompt onKeyVerified={(verifiedAi, verifiedKey) => {
+      localStorage.setItem('user_provided_api_key', verifiedKey);
+      setApiKey(verifiedKey);
+      setAi(verifiedAi);
+      setApiStatus('ok');
+      setIsKeyTemporary(true);
+    }} />;
+  }
   
-  // If we have an API_KEY from env but it's not checked yet, show status overlay.
-  if (API_KEY && apiStatus !== 'ok') {
+  if (apiStatus === 'checking' || apiStatus === 'error') {
     return <ApiStatusOverlay status={apiStatus} errorDetails={apiErrorDetails} onRetry={initializeAndCheckApi} />;
   }
 
   return (
     <main className="w-screen h-screen bg-gray-900 text-white p-4 font-sans flex flex-col gap-4 overflow-hidden">
-       {isKeyTemporary && <TemporaryKeyBanner />}
+       {isKeyTemporary && <TemporaryKeyBanner onClearKey={handleClearKey} />}
        <div className="flex flex-1 gap-4 overflow-hidden">
           <div className="w-1/4 flex flex-col gap-4">
             <UserRankPanel rank="Aprendiz Consciente" onHomeClick={() => {}} />

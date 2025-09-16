@@ -5,7 +5,7 @@ import ClipboardIcon from './icons/ClipboardIcon';
 import AlertTriangleIcon from './icons/AlertTriangleIcon';
 
 interface ApiKeyPromptProps {
-  onKeyVerified: (ai: GoogleGenAI) => void;
+  onKeyVerified: (ai: GoogleGenAI, key: string) => void;
 }
 
 const ApiKeyPrompt: React.FC<ApiKeyPromptProps> = ({ onKeyVerified }) => {
@@ -34,7 +34,7 @@ const ApiKeyPrompt: React.FC<ApiKeyPromptProps> = ({ onKeyVerified }) => {
         contents: 'Hola',
         config: { thinkingConfig: { thinkingBudget: 0 } },
       });
-      onKeyVerified(testAi);
+      onKeyVerified(testAi, keyInput);
     } catch (e) {
       console.error("API Key verification failed", e);
       if (e instanceof Error) {
@@ -93,9 +93,9 @@ const ApiKeyPrompt: React.FC<ApiKeyPromptProps> = ({ onKeyVerified }) => {
 
         {/* Verification Tool */}
         <div className="border-t border-gray-700 pt-8">
-            <h2 className="text-xl font-semibold text-white mb-3">O prueba tu clave temporalmente aquí</h2>
+            <h2 className="text-xl font-semibold text-white mb-3">O prueba y guarda tu clave en este navegador</h2>
             <p className="text-gray-400 text-sm mb-4 max-w-2xl mx-auto">
-                Si tienes problemas con Vercel, pega tu clave aquí para verificarla y usar la aplicación en esta sesión.
+                Si tienes problemas con Vercel, pega tu clave aquí para verificarla y guardarla en este navegador para no tener que volver a introducirla.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-2 max-w-xl mx-auto">
                 <input
@@ -116,7 +116,7 @@ const ApiKeyPrompt: React.FC<ApiKeyPromptProps> = ({ onKeyVerified }) => {
                             Verificando...
                         </>
                     ) : (
-                        'Verificar y Continuar'
+                        'Verificar y Guardar'
                     )}
                 </button>
             </div>
