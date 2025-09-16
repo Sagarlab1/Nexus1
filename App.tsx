@@ -73,6 +73,20 @@ const App: React.FC = () => {
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const recognitionRef = React.useRef<SpeechRecognition | null>(null);
+  
+  const handleInvalidKey = (error: unknown) => {
+    console.error("Error de inicialización de IA:", error);
+    let message = "La inicialización de la IA falló. Verifica tu clave y la configuración de tu proyecto en Google Cloud.";
+    if (error instanceof Error) {
+        message = `Error: ${error.message}. Por favor, verifica que tu clave sea correcta y que tu proyecto de Google Cloud esté bien configurado (Facturación y API activada).`;
+    }
+    setApiKeyError(message);
+    if (localStorage.getItem('gemini_api_key')) {
+        localStorage.removeItem('gemini_api_key');
+    }
+    setApiKey(null);
+    setAi(null);
+  };
 
   useEffect(() => {
     const keyFromEnv = process.env.API_KEY;
@@ -86,14 +100,7 @@ const App: React.FC = () => {
         setAi(genAI);
         setApiKey(effectiveApiKey);
       } catch (error) {
-        console.error("Failed to initialize GoogleGenAI:", error);
-        setApiKeyError("La clave de API proporcionada no es válida. Por favor, verifica e inténtalo de nuevo.");
-        // If the key from storage is bad, remove it to prevent a loop
-        if (keyFromStorage) {
-          localStorage.removeItem('gemini_api_key');
-        }
-        setApiKey(null);
-        setAi(null);
+        handleInvalidKey(error);
       }
     }
     setIsCheckingKey(false);
@@ -103,19 +110,27 @@ const App: React.FC = () => {
   useEffect(() => {
     if (!ai) return;
 
-    setMessages([]);
-    setIsLoading(false);
-    
-    const newChat = ai.chats.create({
-      model: 'gemini-2.5-flash',
-      config: {
-        systemInstruction: activeAgent.prompt
-      },
-    });
-    setChat(newChat);
-    setMessages([
-        { id: 'initial', text: `Hola, soy ${activeAgent.name}. ¿En qué podemos profundizar hoy?`, sender: 'agent' }
-    ]);
+    const initializeChat = async () => {
+        try {
+            setMessages([]);
+            setIsLoading(false);
+            
+            const newChat = ai.chats.create({
+              model: 'gemini-2.5-flash',
+              config: {
+                systemInstruction: activeAgent.prompt
+              },
+            });
+            setChat(newChat);
+            setMessages([
+                { id: 'initial', text: `Hola, soy ${activeAgent.name}. ¿En qué podemos profundizar hoy?`, sender: 'agent' }
+            ]);
+        } catch (error) {
+            handleInvalidKey(error);
+        }
+    }
+    initializeChat();
+
   }, [ai, activeAgent]);
 
   const handleSendMessage = async () => {
