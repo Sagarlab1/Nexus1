@@ -52,46 +52,21 @@ const App: React.FC = () => {
   const [isSpeaking, setIsSpeaking] = React.useState(false);
   const recognitionRef = React.useRef<SpeechRecognition | null>(null);
 
-  // Effect to initialize AI on startup from localStorage
+  // Effect to initialize AI on startup from environment variable
   React.useEffect(() => {
-    const initialize = async () => {
-      const storedApiKey = localStorage.getItem('user_api_key');
-      if (storedApiKey) {
-        try {
-          const genAI = new GoogleGenAI({ apiKey: storedApiKey });
-          // Verify key is valid
-          await genAI.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: 'test',
-            config: { thinkingConfig: { thinkingBudget: 0 } }
-          });
-          setAi(genAI);
-        } catch (error) {
-          console.error("Stored API key is invalid. Removing it.", error);
-          localStorage.removeItem('user_api_key');
-        }
-      }
-      setIsLoadingAi(false);
-    };
-    initialize();
-  }, []);
+    // The API key is expected to be injected by the build environment (e.g., Vercel)
+    const apiKey = process.env.API_KEY;
 
-  const handleKeyProvided = async (key: string): Promise<boolean> => {
-    try {
-      const genAI = new GoogleGenAI({ apiKey: key });
-      await genAI.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: 'test',
-        config: { thinkingConfig: { thinkingBudget: 0 } }
-      });
-      localStorage.setItem('user_api_key', key);
-      setAi(genAI);
-      return true;
-    } catch (error) {
-      console.error("Provided API key is invalid.", error);
-      return false;
+    if (apiKey) {
+      try {
+        const genAI = new GoogleGenAI({ apiKey });
+        setAi(genAI);
+      } catch (error) {
+        console.error("Failed to initialize GoogleGenAI, likely due to an invalid key format.", error);
+      }
     }
-  };
+    setIsLoadingAi(false);
+  }, []);
   
   // Create a new chat session when the AI instance or agent changes
   React.useEffect(() => {
@@ -213,20 +188,20 @@ const App: React.FC = () => {
   if (!isLoggedIn) {
     return <LoginScreen onLogin={() => setIsLoggedIn(true)} />;
   }
-
+  
   if (isLoadingAi) {
      return (
         <div className="fixed inset-0 bg-gray-900 z-50 flex items-center justify-center text-center p-4">
             <div className="flex flex-col items-center gap-4 text-gray-300">
                 <NexusLogo className="w-16 h-16 text-cyan-400 animate-spin" />
-                <p className="text-xl">Inicializando IA...</p>
+                <p className="text-xl">Inicializando...</p>
             </div>
         </div>
      );
   }
 
   if (!ai) {
-    return <ApiKeyPrompt onKeySubmit={handleKeyProvided} />;
+    return <ApiKeyPrompt />;
   }
 
   return (
