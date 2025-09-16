@@ -7,7 +7,6 @@ import AgentPanel from './components/AgentPanel';
 import ChatWindow from './components/ChatWindow';
 import ApiKeyPrompt from './components/ApiKeyPrompt';
 import UserRankPanel from './components/UserRankPanel';
-// FIX: Import NexusLogo to fix reference error.
 import NexusLogo from './components/icons/NexusLogo';
 
 // --- Type definitions for Web Speech API ---
@@ -37,9 +36,10 @@ declare global {
 // --- End of Type definitions ---
 
 const App: React.FC = () => {
-  const [ai, setAi] = React.useState<GoogleGenAI | null>(null);
-  const [isApiKeyNeeded, setIsApiKeyNeeded] = React.useState(false);
   const [isLoggedIn, setIsLoggedIn] = React.useState(false);
+  const [ai, setAi] = React.useState<GoogleGenAI | null>(null);
+  const [isLoadingAi, setIsLoadingAi] = React.useState(true);
+  
   const [activeAgent, setActiveAgent] = React.useState<Agent>(AGENTS[0]);
   const [chat, setChat] = React.useState<Chat | null>(null);
   const [messages, setMessages] = React.useState<Message[]>([]);
@@ -52,35 +52,46 @@ const App: React.FC = () => {
   const [isSpeaking, setIsSpeaking] = React.useState(false);
   const recognitionRef = React.useRef<SpeechRecognition | null>(null);
 
-  const initializeAi = React.useCallback(async (apiKey: string) => {
+  // Effect to initialize AI on startup from localStorage
+  React.useEffect(() => {
+    const initialize = async () => {
+      const storedApiKey = localStorage.getItem('user_api_key');
+      if (storedApiKey) {
+        try {
+          const genAI = new GoogleGenAI({ apiKey: storedApiKey });
+          // Verify key is valid
+          await genAI.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: 'test',
+            config: { thinkingConfig: { thinkingBudget: 0 } }
+          });
+          setAi(genAI);
+        } catch (error) {
+          console.error("Stored API key is invalid. Removing it.", error);
+          localStorage.removeItem('user_api_key');
+        }
+      }
+      setIsLoadingAi(false);
+    };
+    initialize();
+  }, []);
+
+  const handleKeyProvided = async (key: string): Promise<boolean> => {
     try {
-      const genAI = new GoogleGenAI({ apiKey });
-      // Test the key with a simple request
+      const genAI = new GoogleGenAI({ apiKey: key });
       await genAI.models.generateContent({
         model: 'gemini-2.5-flash',
         contents: 'test',
         config: { thinkingConfig: { thinkingBudget: 0 } }
       });
+      localStorage.setItem('user_api_key', key);
       setAi(genAI);
-      setIsApiKeyNeeded(false);
       return true;
-    } catch (e) {
-      console.error("Failed to initialize AI with provided key", e);
+    } catch (error) {
+      console.error("Provided API key is invalid.", error);
       return false;
     }
-  }, []);
-
-  // Check for API key on initial load
-  React.useEffect(() => {
-    if (isLoggedIn) {
-      const storedApiKey = localStorage.getItem('user_api_key') || process.env.API_KEY;
-      if (storedApiKey) {
-        initializeAi(storedApiKey);
-      } else {
-        setIsApiKeyNeeded(true);
-      }
-    }
-  }, [isLoggedIn, initializeAi]);
+  };
   
   // Create a new chat session when the AI instance or agent changes
   React.useEffect(() => {
@@ -100,14 +111,6 @@ const App: React.FC = () => {
         { id: 'initial', text: `Hola, soy ${activeAgent.name}. ¿En qué podemos profundizar hoy?`, sender: 'agent' }
     ]);
   }, [ai, activeAgent]);
-
-  const handleKeyProvided = async (key: string) => {
-    const success = await initializeAi(key);
-    if (success) {
-      localStorage.setItem('user_api_key', key);
-    }
-    return success;
-  };
 
   const handleSendMessage = async () => {
     if (!input.trim() || !chat || isLoading) return;
@@ -211,11 +214,7 @@ const App: React.FC = () => {
     return <LoginScreen onLogin={() => setIsLoggedIn(true)} />;
   }
 
-  if (isApiKeyNeeded) {
-    return <ApiKeyPrompt onKeySubmit={handleKeyProvided} />;
-  }
-
-  if (!ai) {
+  if (isLoadingAi) {
      return (
         <div className="fixed inset-0 bg-gray-900 z-50 flex items-center justify-center text-center p-4">
             <div className="flex flex-col items-center gap-4 text-gray-300">
@@ -223,7 +222,11 @@ const App: React.FC = () => {
                 <p className="text-xl">Inicializando IA...</p>
             </div>
         </div>
-     )
+     );
+  }
+
+  if (!ai) {
+    return <ApiKeyPrompt onKeySubmit={handleKeyProvided} />;
   }
 
   return (
