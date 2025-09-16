@@ -30,7 +30,7 @@ const ApiKeyPrompt: React.FC<ApiKeyPromptProps> = ({ onKeyVerified }) => {
       const testAi = new GoogleGenAI({ apiKey: keyInput });
       // Make a lightweight call to verify the key and its permissions.
       await testAi.models.generateContent({
-        model: 'gemini-2.p5-flash',
+        model: 'gemini-2.5-flash',
         contents: 'Hola',
         config: { thinkingConfig: { thinkingBudget: 0 } },
       });
