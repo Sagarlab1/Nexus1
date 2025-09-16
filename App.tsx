@@ -54,11 +54,28 @@ const App: React.FC = () => {
   const [isSpeaking, setIsSpeaking] = React.useState(false);
   const recognitionRef = React.useRef<SpeechRecognition | null>(null);
 
-  const checkApiStatus = async (genAI: GoogleGenAI) => {
+  const initializeAndCheckApi = React.useCallback(async () => {
+    if (!API_KEY) return;
+
     setApiStatus('checking');
     setApiErrorDetails(null);
+    let genAI: GoogleGenAI | null = null;
+
     try {
-      // Use a simple, non-streaming call to test the connection
+      genAI = new GoogleGenAI({ apiKey: API_KEY });
+      setAi(genAI);
+    } catch (e) {
+      console.error("Error initializing GoogleGenAI", e);
+      setApiStatus('error');
+      if (e instanceof Error) {
+        setApiErrorDetails(`Error al inicializar la IA: ${e.message}\n\nPor favor, verifica que la clave de API sea correcta.`);
+      } else {
+        setApiErrorDetails(`Se produjo un error desconocido al inicializar la IA.`);
+      }
+      return;
+    }
+
+    try {
       await genAI.models.generateContent({
         model: 'gemini-2.5-flash',
         contents: 'Hola',
@@ -74,25 +91,13 @@ const App: React.FC = () => {
         setApiErrorDetails(String(e));
       }
     }
-  };
-  
+  }, []);
+
   React.useEffect(() => {
-    if (API_KEY && isLoggedIn) {
-      try {
-        const genAI = new GoogleGenAI({ apiKey: API_KEY });
-        setAi(genAI);
-        checkApiStatus(genAI);
-      } catch (e) {
-        console.error("Error initializing GoogleGenAI", e);
-        setApiStatus('error');
-        if (e instanceof Error) {
-          setApiErrorDetails(`Error al inicializar la IA: ${e.message}\n\nPor favor, verifica que la clave de API sea correcta.`);
-        } else {
-          setApiErrorDetails(`Se produjo un error desconocido al inicializar la IA.`);
-        }
-      }
+    if (isLoggedIn) {
+      initializeAndCheckApi();
     }
-  }, [API_KEY, isLoggedIn]);
+  }, [isLoggedIn, initializeAndCheckApi]);
   
   React.useEffect(() => {
     if (!ai || apiStatus !== 'ok') return;
@@ -219,7 +224,7 @@ const App: React.FC = () => {
   }
   
   if (apiStatus !== 'ok') {
-    return <ApiStatusOverlay status={apiStatus} errorDetails={apiErrorDetails} />;
+    return <ApiStatusOverlay status={apiStatus} errorDetails={apiErrorDetails} onRetry={initializeAndCheckApi} />;
   }
 
   return (
