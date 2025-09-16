@@ -5,7 +5,11 @@ import CheckIcon from './icons/CheckIcon';
 import RefreshIcon from './icons/RefreshIcon';
 import TrashIcon from './icons/TrashIcon';
 
-const ApiKeyPrompt: React.FC = () => {
+interface ApiKeyPromptProps {
+    error: string | null;
+}
+
+const ApiKeyPrompt: React.FC<ApiKeyPromptProps> = ({ error }) => {
     const [copied, setCopied] = useState(false);
     const [isReloading, setIsReloading] = useState(false);
     const [manualApiKey, setManualApiKey] = useState('');
@@ -46,10 +50,17 @@ const ApiKeyPrompt: React.FC = () => {
                 <div className="text-center">
                     <NexusLogo className="w-16 h-16 text-cyan-400 mx-auto mb-6" />
                     <h1 className="text-3xl font-bold mb-2 text-red-400">Acción Requerida: Clave de API no Detectada</h1>
-                    <p className="text-gray-300 mb-8 max-w-2xl mx-auto">
+                    <p className="text-gray-300 mb-6 max-w-2xl mx-auto">
                         Para activar la IA, necesitas una clave de API de Google Gemini.
                     </p>
                 </div>
+                
+                {error && (
+                  <div className="bg-red-900/50 border border-red-500/50 text-red-300 p-4 rounded-lg mb-6 text-center animate-fade-in">
+                    <p className="font-bold text-lg">Error de Inicialización</p>
+                    <p className="text-sm">{error}</p>
+                  </div>
+                )}
 
                 <div className="bg-gray-900/50 p-6 rounded-lg border border-gray-700 mb-6">
                     <h2 className="text-xl font-bold text-white mb-3">Método Recomendado: Configuración en Vercel</h2>

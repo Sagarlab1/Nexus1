@@ -53,6 +53,7 @@ const App: React.FC = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [apiKey, setApiKey] = useState<string | null>(null);
   const [isCheckingKey, setIsCheckingKey] = useState(true);
+  const [apiKeyError, setApiKeyError] = useState<string | null>(null);
   const [ai, setAi] = useState<GoogleGenAI | null>(null);
   
   const [activeAgent, setActiveAgent] = useState<Agent>(AGENTS[0]);
@@ -74,16 +75,26 @@ const App: React.FC = () => {
   const recognitionRef = React.useRef<SpeechRecognition | null>(null);
 
   useEffect(() => {
-    // In a production environment, API keys should be handled by a backend proxy.
-    // For this prototype, we prioritize the env variable, but fall back to localStorage.
     const keyFromEnv = process.env.API_KEY;
     const keyFromStorage = localStorage.getItem('gemini_api_key');
     const effectiveApiKey = keyFromEnv || keyFromStorage;
 
     if (effectiveApiKey) {
-      setApiKey(effectiveApiKey);
-      const genAI = new GoogleGenAI({ apiKey: effectiveApiKey });
-      setAi(genAI);
+      try {
+        setApiKeyError(null); // Clear previous errors
+        const genAI = new GoogleGenAI({ apiKey: effectiveApiKey });
+        setAi(genAI);
+        setApiKey(effectiveApiKey);
+      } catch (error) {
+        console.error("Failed to initialize GoogleGenAI:", error);
+        setApiKeyError("La clave de API proporcionada no es válida. Por favor, verifica e inténtalo de nuevo.");
+        // If the key from storage is bad, remove it to prevent a loop
+        if (keyFromStorage) {
+          localStorage.removeItem('gemini_api_key');
+        }
+        setApiKey(null);
+        setAi(null);
+      }
     }
     setIsCheckingKey(false);
   }, []);
@@ -270,7 +281,7 @@ const App: React.FC = () => {
   }
 
   if (!apiKey || !ai) {
-    return <ApiKeyPrompt />;
+    return <ApiKeyPrompt error={apiKeyError} />;
   }
   
   const isCourseView = ['nexus_zero_course', 'critical_thinking_course', 'creativity_course', 'entrepreneurship_course', 'gen_ai_course'].includes(activeView);
