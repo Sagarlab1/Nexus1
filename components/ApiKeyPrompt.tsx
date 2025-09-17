@@ -9,7 +9,8 @@ interface ApiKeyPromptProps {
 
 const ApiKeyPrompt: React.FC<ApiKeyPromptProps> = ({ errorMessage }) => {
   const copyToClipboard = () => {
-    navigator.clipboard.writeText('VITE_API_KEY');
+    // FIX: Updated to API_KEY to align with Gemini guidelines.
+    navigator.clipboard.writeText('API_KEY');
     // Add user feedback if needed, e.g., showing a temporary "Copied!" message.
   };
 
@@ -33,12 +34,13 @@ const ApiKeyPrompt: React.FC<ApiKeyPromptProps> = ({ errorMessage }) => {
                 <li>
                   <span>Crea una nueva variable con el nombre exacto:</span>
                   <div className="flex items-center gap-2 mt-1">
-                    <code className="bg-gray-700 text-cyan-300 font-mono px-2 py-1 rounded-md">VITE_API_KEY</code>
+                    {/* FIX: Updated to API_KEY to align with Gemini guidelines. */}
+                    <code className="bg-gray-700 text-cyan-300 font-mono px-2 py-1 rounded-md">API_KEY</code>
                     <button onClick={copyToClipboard} title="Copiar al portapapeles" className="p-1 rounded-md bg-gray-600 hover:bg-gray-500">
                       <ClipboardIcon className="w-4 h-4 text-gray-300" />
                     </button>
                   </div>
-                   <span className="text-xs text-gray-500">¿Por qué este nombre? Por seguridad, las apps web necesitan un prefijo como `VITE_` para que la clave sea accesible desde el código.</span>
+                   {/* FIX: Removed explanation for VITE_ prefix as it's no longer used. */}
                 </li>
                 <li>Pega tu clave de API de Gemini como el valor de la variable.</li>
                 <li className="font-bold text-yellow-400 bg-yellow-500/10 p-2 rounded-md">Importante: Guarda los cambios y vuelve a desplegar ("Redeploy") tu proyecto para que la nueva variable tenga efecto.</li>

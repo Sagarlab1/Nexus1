@@ -5,17 +5,26 @@ import type { Agent } from '../types';
 let ai: GoogleGenAI | null = null;
 const chatSessions = new Map<string, Chat>();
 
+// FIX: Switched to process.env.API_KEY to align with Gemini API guidelines and resolve TypeScript error.
+const API_KEY = process.env.API_KEY;
+
 /**
  * Initializes the GoogleGenAI client.
- * It uses the process.env.API_KEY environment variable, which is assumed to be available.
- * This must be called before any other function in this service.
+ * Throws an error if the API key is not found or invalid.
  */
-// FIX: Updated to align with @google/genai guidelines.
 export function initializeAi(): void {
-  // Per guidelines, the API key is provided via process.env.API_KEY and assumed to be valid.
-  ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
-  // Clear any previous chat sessions if re-initializing
-  chatSessions.clear();
+  if (!API_KEY) {
+    // FIX: Updated error message to reflect the change to API_KEY.
+    throw new Error("La variable de entorno API_KEY no está configurada.");
+  }
+  try {
+    ai = new GoogleGenAI({ apiKey: API_KEY });
+    // Clear any previous chat sessions if re-initializing
+    chatSessions.clear();
+  } catch (e: any) {
+    console.error("Failed to initialize GoogleGenAI:", e);
+    throw new Error(`La API Key proporcionada es inválida. Verifica que sea correcta y que la API esté habilitada en tu proyecto de Google Cloud.`);
+  }
 }
 
 /**
