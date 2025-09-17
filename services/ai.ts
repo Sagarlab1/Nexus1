@@ -6,15 +6,14 @@ let ai: GoogleGenAI | null = null;
 const chatSessions = new Map<string, Chat>();
 
 /**
- * Initializes the GoogleGenAI client with the provided API key.
+ * Initializes the GoogleGenAI client.
+ * It uses the process.env.API_KEY environment variable, which is assumed to be available.
  * This must be called before any other function in this service.
- * @param apiKey The API key for the Google Gemini API.
  */
-export function initializeAi(apiKey: string): void {
-  if (!apiKey) {
-    throw new Error("API key is missing.");
-  }
-  ai = new GoogleGenAI({ apiKey });
+// FIX: Updated to align with @google/genai guidelines.
+export function initializeAi(): void {
+  // Per guidelines, the API key is provided via process.env.API_KEY and assumed to be valid.
+  ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
   // Clear any previous chat sessions if re-initializing
   chatSessions.clear();
 }

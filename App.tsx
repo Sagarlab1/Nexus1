@@ -11,7 +11,6 @@ import LoginScreen from './components/LoginScreen';
 import PremiumModal from './components/PremiumModal';
 import ChatModal from './components/ChatModal';
 import FloatingChatButton from './components/FloatingChatButton';
-import ApiKeyPrompt from './components/ApiKeyPrompt';
 import NexusLogo from './components/icons/NexusLogo';
 
 // Page/View Imports
@@ -38,19 +37,18 @@ const App: React.FC = () => {
   
   const playSound = useSound();
 
+  // FIX: Updated to align with @google/genai guidelines.
+  // The API key is now handled by initializeAi directly from process.env.API_KEY.
+  // We assume the key is valid and available as per guidelines, which also resolves the original TypeScript error.
   useEffect(() => {
-    const apiKey = process.env.API_KEY;
-    if (!apiKey) {
-      setAiError("La variable de entorno API_KEY no está configurada.");
-      return;
-    }
     try {
-      initializeAi(apiKey);
+      initializeAi();
       setIsAiReady(true);
       setAiError(null);
     } catch (error) {
       console.error("Fallo al inicializar la IA:", error);
-      setAiError("La API Key proporcionada no es válida. Revisa la configuración en Vercel.");
+      // As per guidelines, we don't prompt for an API key. Show a generic error instead.
+      setAiError("Hubo un problema al inicializar la IA. Por favor, revisa la consola y recarga la página.");
     }
   }, []);
 
@@ -120,8 +118,16 @@ const App: React.FC = () => {
     }
   };
 
+  // FIX: Replaced ApiKeyPrompt with a generic error display to comply with guidelines.
+  // The guidelines state not to create UI for managing API keys.
   if (aiError) {
-    return <ApiKeyPrompt errorMessage={aiError} />;
+    return (
+      <div className="fixed inset-0 bg-gray-900 z-50 flex flex-col items-center justify-center text-center p-4">
+        <NexusLogo className="w-20 h-20 text-red-500 mb-6" />
+        <h1 className="text-3xl font-bold text-white mb-2">Error de Inicialización</h1>
+        <p className="text-lg text-red-400 max-w-md">{aiError}</p>
+      </div>
+    );
   }
 
   if (!isAiReady) {
