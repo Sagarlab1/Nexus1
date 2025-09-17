@@ -5,7 +5,8 @@ import type { Agent } from '../types';
 let ai: GoogleGenAI | null = null;
 const chatSessions = new Map<string, Chat>();
 
-// FIX: Per coding guidelines, the API key must be obtained from process.env.API_KEY. This also resolves the TypeScript error.
+// FIX: Per coding guidelines, the API key must be obtained from process.env.API_KEY.
+// This resolves the TypeScript error related to 'import.meta.env'.
 const API_KEY = process.env.API_KEY;
 
 /**
@@ -14,7 +15,7 @@ const API_KEY = process.env.API_KEY;
  */
 export function initializeAi(): void {
   if (!API_KEY) {
-    // FIX: Updated error message to reference the correct environment variable name.
+    // FIX: Updated error message to reference the correct environment variable name as per guidelines.
     throw new Error("La variable de entorno API_KEY no está configurada.");
   }
   try {

@@ -34,13 +34,12 @@ const ApiKeyPrompt: React.FC<ApiKeyPromptProps> = ({ errorMessage }) => {
                 <li>
                   <span>Crea una nueva variable con el nombre exacto:</span>
                   <div className="flex items-center gap-2 mt-1">
-                    {/* FIX: Update environment variable name to API_KEY. */}
+                    {/* FIX: Update environment variable name to API_KEY as per guidelines. */}
                     <code className="bg-gray-700 text-cyan-300 font-mono px-2 py-1 rounded-md">API_KEY</code>
                     <button onClick={copyToClipboard} title="Copiar al portapapeles" className="p-1 rounded-md bg-gray-600 hover:bg-gray-500">
                       <ClipboardIcon className="w-4 h-4 text-gray-300" />
                     </button>
                   </div>
-                   {/* FIX: Removed Vite-specific explanation to align with guidelines. */}
                 </li>
                 <li>Pega tu clave de API de Gemini como el valor de la variable.</li>
                 <li className="font-bold text-yellow-400 bg-yellow-500/10 p-2 rounded-md">Importante: Guarda los cambios y vuelve a desplegar ("Redeploy") tu proyecto para que la nueva variable tenga efecto.</li>
