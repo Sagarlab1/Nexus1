@@ -18,6 +18,7 @@ import GenerativeAiCoursePage from './components/GenerativeAiCoursePage';
 import FloatingChatButton from './components/FloatingChatButton';
 import ChatModal from './components/ChatModal';
 import CognitiveGymPage from './components/CognitiveGymPage';
+import ApiKeyPrompt from './components/ApiKeyPrompt';
 
 
 // --- Type definitions for Web Speech API ---
@@ -48,14 +49,12 @@ declare global {
 
 export type View = 'chat' | 'programs' | 'challenges' | 'nexus_zero_course' | 'critical_thinking_course' | 'creativity_course' | 'entrepreneurship_course' | 'gen_ai_course' | 'cognitive_gym';
 
-// FIX: Initialize GoogleGenAI with process.env.API_KEY as per guidelines.
-// This assumes the API_KEY is available in the environment and fixes the `import.meta.env` error.
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
 const App: React.FC = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  // FIX: Removed states related to manual API key management.
-  // The API key is now handled exclusively by environment variables.
+  const [ai, setAi] = useState<GoogleGenAI | null>(null);
+  const [apiKey, setApiKey] = useState<string | null>(null);
+  const [isApiKeyValid, setIsApiKeyValid] = useState<boolean | null>(null);
+  const [error, setError] = useState<string | null>(null);
   
   const [activeAgent, setActiveAgent] = useState<Agent>(AGENTS[0]);
   const [chat, setChat] = useState<Chat | null>(null);
@@ -75,15 +74,48 @@ const App: React.FC = () => {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const recognitionRef = React.useRef<SpeechRecognition | null>(null);
   
-  // FIX: Removed functions and useEffect related to manual API key management (handleInvalidKey, initializeAi).
-  // The application now assumes a valid API key is provided via environment variables.
+  const handleInvalidKey = () => {
+    localStorage.removeItem('user_api_key');
+    setApiKey(null);
+    setIsApiKeyValid(false);
+  };
+  
+  const initializeAi = async (key: string) => {
+    setError(null);
+    try {
+      const genAI = new GoogleGenAI({ apiKey: key });
+      // Test the key by creating a dummy chat.
+      await genAI.chats.create({ model: 'gemini-2.5-flash' });
+      setAi(genAI);
+      setApiKey(key);
+      setIsApiKeyValid(true);
+    } catch (err) {
+      console.error("API Key validation failed:", err);
+      setError("La clave de API proporcionada no es válida o tiene problemas. Verifica la consola para más detalles.");
+      handleInvalidKey();
+    }
+  };
+  
+  useEffect(() => {
+    const envApiKey = process.env.API_KEY;
+    const storedApiKey = localStorage.getItem('user_api_key');
+    
+    if (envApiKey) {
+      initializeAi(envApiKey);
+    } else if (storedApiKey) {
+      initializeAi(storedApiKey);
+    } else {
+      setIsApiKeyValid(false); // Prompt the user
+    }
+  }, []);
 
   useEffect(() => {
-    // FIX: Simplified chat initialization. It no longer depends on a dynamic `ai` object.
+    if (!ai) return;
+
     const initializeChat = async () => {
         try {
             setMessages([]);
-            setIsLoading(false);
+            setIsLoading(true);
             
             const newChat = ai.chats.create({
               model: 'gemini-2.5-flash',
@@ -97,12 +129,15 @@ const App: React.FC = () => {
             ]);
         } catch (error) {
             console.error("Error initializing chat:", error);
+            setError("Error al inicializar el chat. Puede haber un problema con la API de Google en este momento.");
             setMessages([{ id: 'error', text: 'Error al inicializar el chat. Por favor, verifica la configuración de la API Key y refresca la página.', sender: 'agent' }]);
+        } finally {
+            setIsLoading(false);
         }
     }
     initializeChat();
 
-  }, [activeAgent]);
+  }, [activeAgent, ai]);
 
   const handleSendMessage = async () => {
     if (!input.trim() || !chat || isLoading) return;
@@ -212,7 +247,10 @@ const App: React.FC = () => {
     }
   };
   
-  // FIX: Removed handleKeySubmit function.
+  const handleKeySubmit = (key: string) => {
+    localStorage.setItem('user_api_key', key);
+    initializeAi(key);
+  };
 
   const renderContent = () => {
     switch (activeView) {
@@ -257,8 +295,18 @@ const App: React.FC = () => {
     return <LoginScreen onLogin={() => setIsLoggedIn(true)} />;
   }
   
-  // FIX: Removed loading state and API key prompt rendering logic.
-  // The app now proceeds directly to rendering content, assuming the API key is valid.
+  if (isApiKeyValid === null) {
+      return (
+        <div className="w-screen h-screen bg-gray-900 flex flex-col items-center justify-center text-white">
+          <NexusLogo className="w-24 h-24 text-cyan-400 animate-spin mb-4" />
+          <p className="text-lg">Verificando conexión con la IA...</p>
+        </div>
+      );
+  }
+
+  if (!isApiKeyValid) {
+    return <ApiKeyPrompt onKeySubmit={handleKeySubmit} error={error} />;
+  }
   
   const isCourseView = ['nexus_zero_course', 'critical_thinking_course', 'creativity_course', 'entrepreneurship_course', 'gen_ai_course'].includes(activeView);
 
