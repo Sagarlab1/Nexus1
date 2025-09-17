@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { AGENTS } from './constants';
 import type { Agent, Message } from './types';
-import { generateResponse } from './services/ai';
+import { initializeAi, generateResponse } from './services/ai';
 import { useSound } from './hooks/useSound';
 
 // Component Imports
@@ -11,6 +11,8 @@ import LoginScreen from './components/LoginScreen';
 import PremiumModal from './components/PremiumModal';
 import ChatModal from './components/ChatModal';
 import FloatingChatButton from './components/FloatingChatButton';
+import ApiKeyPrompt from './components/ApiKeyPrompt';
+import NexusLogo from './components/icons/NexusLogo';
 
 // Page/View Imports
 import NexusZeroPage from './components/NexusZeroPage';
@@ -18,10 +20,11 @@ import ProgramsPage from './components/ProgramsPage';
 import LatinoChallengesPage from './components/LatinoChallengesPage';
 import CognitiveGymPage from './components/CognitiveGymPage';
 
-// Correct: Export the View type so other components like UserRankPanel can import it.
 export type View = 'chat' | 'nexus_zero_course' | 'programs' | 'challenges' | 'cognitive_gym';
 
 const App: React.FC = () => {
+  const [isAiReady, setIsAiReady] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [messagesByAgent, setMessagesByAgent] = useState<Record<string, Message[]>>({});
   const [activeAgent, setActiveAgent] = useState<Agent>(AGENTS[2]); // Default to Nexus
@@ -30,14 +33,27 @@ const App: React.FC = () => {
   const [activeView, setActiveView] = useState<View>('nexus_zero_course');
   const [isPremiumModalOpen, setIsPremiumModalOpen] = useState(false);
   const [isChatModalOpen, setIsChatModalOpen] = useState(false);
-
-  // Placeholder state for voice features to ensure UI components function correctly
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   
   const playSound = useSound();
 
-  // Memoized values for current message thread
+  useEffect(() => {
+    const apiKey = process.env.API_KEY;
+    if (!apiKey) {
+      setAiError("La variable de entorno API_KEY no está configurada.");
+      return;
+    }
+    try {
+      initializeAi(apiKey);
+      setIsAiReady(true);
+      setAiError(null);
+    } catch (error) {
+      console.error("Fallo al inicializar la IA:", error);
+      setAiError("La API Key proporcionada no es válida. Revisa la configuración en Vercel.");
+    }
+  }, []);
+
   const messages = messagesByAgent[activeAgent.id] || [];
   const setMessages = (updater: React.SetStateAction<Message[]>) => {
     const newMessages = typeof updater === 'function' ? updater(messages) : updater;
@@ -45,16 +61,14 @@ const App: React.FC = () => {
   };
 
   useEffect(() => {
-    // Set a welcome message for an agent if no conversation exists yet
-    if (!messagesByAgent[activeAgent.id]) {
+    if (isAiReady && !messagesByAgent[activeAgent.id]) {
       setMessages([{
         id: 'welcome-' + activeAgent.id,
         text: `Hola, soy ${activeAgent.name}. ¿En qué puedo ayudarte hoy?`,
         sender: 'agent',
       }]);
     }
-  }, [activeAgent.id, messagesByAgent, setMessages]);
-
+  }, [activeAgent.id, messagesByAgent, isAiReady]);
 
   const handleLogin = () => setIsLoggedIn(true);
 
@@ -62,19 +76,17 @@ const App: React.FC = () => {
     if (!input.trim() || isLoading) return;
     const messageText = input;
     setInput('');
-
     const userMessage: Message = { id: Date.now(), text: messageText, sender: 'user' };
     setMessages(prev => [...prev, userMessage]);
     setIsLoading(true);
     playSound('send');
-
     try {
       const responseText = await generateResponse(activeAgent, messageText);
       const agentMessage: Message = { id: Date.now() + 1, text: responseText, sender: 'agent' };
       setMessages(prev => [...prev, agentMessage]);
       playSound('receive');
     } catch (error) {
-      console.error("Error generating response:", error);
+      console.error("Error al generar respuesta:", error);
       const errorMessage: Message = { id: Date.now() + 1, text: "Lo siento, ocurrió un error. Por favor, intenta de nuevo.", sender: 'agent' };
       setMessages(prev => [...prev, errorMessage]);
     } finally {
@@ -88,7 +100,6 @@ const App: React.FC = () => {
     } else {
       setActiveView(view);
     }
-    
     if (agentId) {
       const agent = AGENTS.find(a => a.id === agentId);
       if (agent) setActiveAgent(agent);
@@ -101,18 +112,25 @@ const App: React.FC = () => {
 
   const renderActiveView = () => {
     switch (activeView) {
-      case 'nexus_zero_course':
-        return <NexusZeroPage onNavigateToPrograms={() => handleNavigate('programs')} />;
-      case 'programs':
-        return <ProgramsPage onOpenPremium={() => setIsPremiumModalOpen(true)} />;
-      case 'challenges':
-        return <LatinoChallengesPage />;
-      case 'cognitive_gym':
-        return <CognitiveGymPage />;
-      default:
-        return <NexusZeroPage onNavigateToPrograms={() => handleNavigate('programs')} />;
+      case 'nexus_zero_course': return <NexusZeroPage onNavigateToPrograms={() => handleNavigate('programs')} />;
+      case 'programs': return <ProgramsPage onOpenPremium={() => setIsPremiumModalOpen(true)} />;
+      case 'challenges': return <LatinoChallengesPage />;
+      case 'cognitive_gym': return <CognitiveGymPage />;
+      default: return <NexusZeroPage onNavigateToPrograms={() => handleNavigate('programs')} />;
     }
   };
+
+  if (aiError) {
+    return <ApiKeyPrompt errorMessage={aiError} />;
+  }
+
+  if (!isAiReady) {
+    return (
+      <div className="fixed inset-0 bg-gray-900 z-50 flex items-center justify-center">
+        <NexusLogo className="w-24 h-24 text-cyan-400 animate-pulse" />
+      </div>
+    );
+  }
 
   if (!isLoggedIn) {
     return <LoginScreen onLogin={handleLogin} />;

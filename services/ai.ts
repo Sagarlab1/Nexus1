@@ -1,31 +1,39 @@
 // @google/genai API client
-// FIX: Implement the AI service to resolve module errors and provide chat functionality.
 import { GoogleGenAI, Chat, GenerateContentResponse } from "@google/genai";
 import type { Agent } from '../types';
 
-/**
- * According to the guidelines, the API key must be obtained exclusively from 
- * the environment variable `process.env.API_KEY`.
- */
-// Correct: Initialization with a named `apiKey` parameter.
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
-// Use a Map to store and retrieve ongoing chat sessions for different agents.
+let ai: GoogleGenAI | null = null;
 const chatSessions = new Map<string, Chat>();
 
 /**
+ * Initializes the GoogleGenAI client with the provided API key.
+ * This must be called before any other function in this service.
+ * @param apiKey The API key for the Google Gemini API.
+ */
+export function initializeAi(apiKey: string): void {
+  if (!apiKey) {
+    throw new Error("API key is missing.");
+  }
+  ai = new GoogleGenAI({ apiKey });
+  // Clear any previous chat sessions if re-initializing
+  chatSessions.clear();
+}
+
+/**
  * Retrieves an existing chat session for a given agent or creates a new one.
- * This ensures that conversation history is maintained separately for each agent.
+ * Throws an error if the AI client has not been initialized.
  * @param agent The AI agent for which to get the chat session.
  * @returns A Chat instance.
  */
 function getChat(agent: Agent): Chat {
+  if (!ai) {
+    throw new Error("AI client has not been initialized. Please call initializeAi first.");
+  }
+
   if (chatSessions.has(agent.id)) {
     return chatSessions.get(agent.id)!;
   }
 
-  // Correct: Use the recommended 'gemini-2.5-flash' model for text tasks.
-  // The agent's specific prompt is passed as a system instruction.
   const chat = ai.chats.create({
     model: 'gemini-2.5-flash',
     config: {
@@ -47,11 +55,10 @@ export async function generateResponse(
   agent: Agent,
   message: string
 ): Promise<string> {
+   if (!ai) {
+    throw new Error("AI client has not been initialized. Please call initializeAi first.");
+  }
   const chat = getChat(agent);
-
-  // Correct: Use chat.sendMessage for conversation history.
   const response: GenerateContentResponse = await chat.sendMessage({ message });
-  
-  // Correct: Extract the text response directly from the `text` property.
   return response.text;
 }
