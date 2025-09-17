@@ -5,7 +5,7 @@ import type { Agent } from '../types';
 let ai: GoogleGenAI | null = null;
 const chatSessions = new Map<string, Chat>();
 
-// FIX: Switched to process.env.API_KEY to align with Gemini API guidelines and resolve TypeScript error.
+// FIX: Per coding guidelines, the API key must be obtained from process.env.API_KEY. This also resolves the TypeScript error.
 const API_KEY = process.env.API_KEY;
 
 /**
@@ -14,7 +14,7 @@ const API_KEY = process.env.API_KEY;
  */
 export function initializeAi(): void {
   if (!API_KEY) {
-    // FIX: Updated error message to reflect the change to API_KEY.
+    // FIX: Updated error message to reference the correct environment variable name.
     throw new Error("La variable de entorno API_KEY no está configurada.");
   }
   try {
