@@ -35,20 +35,52 @@ const App: React.FC = () => {
   const [isChatModalOpen, setIsChatModalOpen] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [isLoadingAi, setIsLoadingAi] = useState(true);
   
   const playSound = useSound();
 
-  useEffect(() => {
+  const attemptAiInitialization = async (key: string) => {
     try {
-      initializeAi();
+      initializeAi(key);
       setIsAiReady(true);
       setAiError(null);
+      return true;
     } catch (error: any) {
       console.error("Fallo al inicializar la IA:", error);
-      setAiError(error.message || "Ocurrió un error desconocido al inicializar la IA.");
+      setAiError(error.message || "Ocurrió un error desconocido.");
       setIsAiReady(false);
+      // If the key from local storage is bad, remove it.
+      if (localStorage.getItem('user_api_key')) {
+        localStorage.removeItem('user_api_key');
+      }
+      return false;
     }
+  };
+
+  useEffect(() => {
+    const init = async () => {
+      setIsLoadingAi(true);
+      const envKey = process.env.API_KEY;
+      const localKey = localStorage.getItem('user_api_key');
+
+      if (envKey) {
+        await attemptAiInitialization(envKey);
+      } else if (localKey) {
+        await attemptAiInitialization(localKey);
+      }
+      setIsLoadingAi(false);
+    };
+    init();
   }, []);
+
+  const handleKeySubmit = async (key: string) => {
+    setIsLoadingAi(true);
+    const success = await attemptAiInitialization(key);
+    if (success) {
+      localStorage.setItem('user_api_key', key);
+    }
+    setIsLoadingAi(false);
+  };
 
   const messages = messagesByAgent[activeAgent.id] || [];
   const setMessages = (updater: React.SetStateAction<Message[]>) => {
@@ -116,16 +148,16 @@ const App: React.FC = () => {
     }
   };
 
-  if (!isAiReady && aiError) {
-    return <ApiKeyPrompt errorMessage={aiError} />;
-  }
-
-  if (!isAiReady) {
+  if (isLoadingAi) {
     return (
       <div className="fixed inset-0 bg-gray-900 z-50 flex items-center justify-center">
         <NexusLogo className="w-24 h-24 text-cyan-400 animate-pulse" />
       </div>
     );
+  }
+
+  if (!isAiReady) {
+    return <ApiKeyPrompt errorMessage={aiError} onKeySubmit={handleKeySubmit} />;
   }
 
   if (!isLoggedIn) {
@@ -138,7 +170,7 @@ const App: React.FC = () => {
       <div className="relative p-4 grid grid-cols-1 lg:grid-cols-4 gap-4 h-screen">
         <div className="lg:col-span-1 h-full">
           <UserRankPanel 
-            rank="Sapiens Inicial"
+            rank="Aprendiz Consciente"
             activeView={isChatModalOpen ? 'chat' : activeView}
             onNavigate={handleNavigate}
             onOpenPremium={() => setIsPremiumModalOpen(true)}
