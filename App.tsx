@@ -1,8 +1,8 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { AGENTS } from './constants';
 import type { Agent, Message } from './types';
-// FIX: Import generateResponse to fix the error, and remove setApiKey, clearApiKey as they are no longer used.
-import { initializeAi, generateResponse } from './services/ai';
+import { initializeAi, generateResponse, setAndInitializeAi, clearApiKey } from './services/ai';
 import { useSound } from './hooks/useSound';
 
 // Component Imports
@@ -11,8 +11,8 @@ import LoginScreen from './components/LoginScreen';
 import PremiumModal from './components/PremiumModal';
 import ChatModal from './components/ChatModal';
 import FloatingChatButton from './components/FloatingChatButton';
-// FIX: ApiKeyPrompt is no longer used as per guidelines.
 import NexusLogo from './components/icons/NexusLogo';
+import ApiKeyPrompt from './components/ApiKeyPrompt';
 
 
 // Page/View Imports
@@ -20,11 +20,9 @@ import NexusZeroPage from './components/NexusZeroPage';
 import ProgramsPage from './components/ProgramsPage';
 import LatinoChallengesPage from './components/LatinoChallengesPage';
 import CognitiveGymPage from './components/CognitiveGymPage';
-import AlertTriangleIcon from './components/icons/AlertTriangleIcon';
 
 export type View = 'chat' | 'nexus_zero_course' | 'programs' | 'challenges' | 'cognitive_gym';
-// FIX: 'needs_key' status now represents a configuration error state, not a prompt for a key.
-type AppStatus = 'loading' | 'config_error' | 'ready';
+type AppStatus = 'loading' | 'needs_key' | 'config_error' | 'ready';
 
 const App: React.FC = () => {
   const [appStatus, setAppStatus] = useState<AppStatus>('loading');
@@ -46,25 +44,22 @@ const App: React.FC = () => {
     setInitError(null);
     setAppStatus('loading');
     try {
-        await initializeAi();
-        setAppStatus('ready');
+        const isReady = await initializeAi();
+        if (isReady) {
+            setAppStatus('ready');
+        } else {
+            setAppStatus('needs_key');
+        }
     } catch (error: any) {
         console.error("AI Initialization failed:", error);
-        // FIX: Update error message to reflect new API key handling process.
-        if (error.message === 'NO_API_KEY') {
-            setInitError("La API Key de Google Gemini no está configurada. Por favor, configura la variable de entorno API_KEY para continuar.");
-        } else {
-            setInitError(error.message);
-        }
-        setAppStatus('config_error');
+        setInitError(error.message);
+        setAppStatus('needs_key'); // Show prompt again with error
     }
   }, []);
 
   useEffect(() => {
     attemptInitialization();
   }, [attemptInitialization]);
-
-  // FIX: Removed handleKeySubmit and handleResetKey as user-managed API keys are disallowed by guidelines.
 
 
   const messages = messagesByAgent[activeAgent.id] || [];
@@ -83,6 +78,24 @@ const App: React.FC = () => {
     }
   }, [activeAgent.id, messagesByAgent, appStatus]);
 
+  const handleApiKeySubmit = async (apiKey: string) => {
+    setInitError(null);
+    setIsLoading(true);
+    try {
+        await setAndInitializeAi(apiKey);
+        setAppStatus('ready');
+    } catch (error: any) {
+        setInitError(error.message);
+    } finally {
+        setIsLoading(false);
+    }
+  };
+
+  const handleResetKey = () => {
+    clearApiKey();
+    window.location.reload();
+  };
+
   const handleLogin = () => setIsLoggedIn(true);
 
   const handleSendMessage = async () => {
@@ -94,7 +107,6 @@ const App: React.FC = () => {
     setIsLoading(true);
     playSound('send');
     try {
-      // FIX: Original error was here. generateResponse is now correctly imported and can be called.
       const responseText = await generateResponse(activeAgent, messageText);
       const agentMessage: Message = { id: Date.now() + 1, text: responseText, sender: 'agent' };
       setMessages(prev => [...prev, agentMessage]);
@@ -144,22 +156,17 @@ const App: React.FC = () => {
     );
   }
 
-  // FIX: Replaced ApiKeyPrompt with a static error screen as user-provided keys are not allowed.
+  if (appStatus === 'needs_key') {
+    return <ApiKeyPrompt onSubmit={handleApiKeySubmit} error={initError} isLoading={isLoading} />;
+  }
+
   if (appStatus === 'config_error') {
-    return (
-      <div className="fixed inset-0 bg-gray-900 z-50 flex items-center justify-center p-4">
-        <div className="w-full max-w-lg mx-auto bg-gray-800 border border-red-500/30 rounded-lg p-8 shadow-2xl text-center">
-          <AlertTriangleIcon className="w-16 h-16 text-red-400 mx-auto mb-4" />
-          <h1 className="text-3xl font-bold text-white mb-2">Error de Configuración</h1>
-          <p className="text-gray-300 mb-6">
-            {initError || 'No se pudo inicializar la aplicación. Por favor, contacta al soporte.'}
-          </p>
-          <p className="text-xs text-gray-500">
-            Asegúrate de que la variable de entorno API_KEY esté correctamente configurada.
-          </p>
+     return (
+        <div className="fixed inset-0 bg-gray-900 text-white flex flex-col items-center justify-center p-4">
+          <h2 className="text-2xl font-bold text-red-500 mb-4">Error Inesperado</h2>
+          <p className="text-center max-w-md">{initError || "Ocurrió un error desconocido durante la inicialización."}</p>
         </div>
-      </div>
-    );
+     );
   }
 
   if (!isLoggedIn) {
@@ -176,7 +183,7 @@ const App: React.FC = () => {
             activeView={isChatModalOpen ? 'chat' : activeView}
             onNavigate={handleNavigate}
             onOpenPremium={() => setIsPremiumModalOpen(true)}
-            // FIX: Removed onResetKey prop as it is no longer supported.
+            onResetKey={handleResetKey}
           />
         </div>
         <div className="lg:col-span-3 h-full overflow-hidden">

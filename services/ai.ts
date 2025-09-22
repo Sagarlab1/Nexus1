@@ -1,37 +1,79 @@
+
 import { GoogleGenAI, Chat, GenerateContentResponse } from "@google/genai";
 import type { Agent } from '../types';
 
 let ai: GoogleGenAI | null = null;
 const chatSessions = new Map<string, Chat>();
+const API_KEY_STORAGE_KEY = 'nexus_sapiens_api_key';
 
 /**
- * Initializes the GoogleGenAI client.
- * The API key must be provided via the process.env.API_KEY environment variable.
+ * Attempts to initialize the GoogleGenAI client using a key from localStorage or environment variables.
+ * @returns {Promise<boolean>} - True if initialization is successful, false if no key is found.
+ * @throws {Error} - If the key is present but invalid.
  */
-export async function initializeAi(): Promise<void> {
-  // FIX: Per guidelines, API key must come exclusively from process.env.API_KEY.
-  // Removed logic for localStorage, environment fallbacks, and user-provided keys.
-  const apiKey = process.env.API_KEY;
+export async function initializeAi(): Promise<boolean> {
+  if (ai) return true; // Already initialized
 
-  if (!apiKey || typeof apiKey !== 'string' || apiKey.trim() === '') {
-    console.error("API_KEY environment variable not set or empty.");
-    // App.tsx will handle this error to show a message.
-    throw new Error("NO_API_KEY");
+  let apiKey = localStorage.getItem(API_KEY_STORAGE_KEY);
+
+  if (!apiKey) {
+    // Fallback to environment variable if no key in localStorage
+    // This supports deployments where the key is pre-configured
+    apiKey = process.env.NEXT_PUBLIC_API_KEY || null;
+  }
+  
+  if (!apiKey) {
+    return false; // No key found anywhere
   }
 
   try {
-    // FIX: Per guidelines, apiKey must be a named parameter.
-    ai = new GoogleGenAI({ apiKey });
+    const newAi = new GoogleGenAI({ apiKey });
+    ai = newAi;
     chatSessions.clear();
-    console.log("GoogleGenAI inicializado exitosamente.");
+    localStorage.setItem(API_KEY_STORAGE_KEY, apiKey); // Cache the key if it came from env var
+    console.log("GoogleGenAI initialized successfully.");
+    return true;
   } catch (e: any) {
-    console.error("Fallo al inicializar GoogleGenAI con la clave proporcionada:", e.message);
-    throw new Error(`La API Key proporcionada no es válida. Por favor, revísala. Error: ${e.message}`);
+    console.error("Failed to initialize GoogleGenAI:", e.message);
+    // Clear invalid key from storage
+    localStorage.removeItem(API_KEY_STORAGE_KEY);
+    throw new Error(`The provided API Key is invalid. Please check it. Error: ${e.message}`);
   }
 }
 
-// FIX: Removed setApiKey and clearApiKey functions as per guidelines disallowing user-managed keys.
+/**
+ * Sets and validates a new API key, then initializes the AI client.
+ * @param {string} apiKey - The Google Gemini API key.
+ * @throws {Error} - If the key is invalid.
+ */
+export async function setAndInitializeAi(apiKey: string): Promise<void> {
+  if (!apiKey || typeof apiKey !== 'string' || apiKey.trim() === '') {
+    throw new Error("API Key cannot be empty.");
+  }
 
+  try {
+    const newAi = new GoogleGenAI({ apiKey });
+    ai = newAi;
+    chatSessions.clear();
+    localStorage.setItem(API_KEY_STORAGE_KEY, apiKey);
+    console.log("GoogleGenAI initialized successfully with provided key.");
+  } catch (e: any) {
+    console.error("Failed to initialize GoogleGenAI with provided key:", e.message);
+    ai = null;
+    localStorage.removeItem(API_KEY_STORAGE_KEY);
+    throw new Error(`The provided API Key is invalid. Error: ${e.message}`);
+  }
+}
+
+/**
+ * Clears the stored API key and resets the AI client.
+ */
+export function clearApiKey(): void {
+  localStorage.removeItem(API_KEY_STORAGE_KEY);
+  ai = null;
+  chatSessions.clear();
+  console.log("API Key cleared.");
+}
 
 /**
  * Retrieves an existing chat session for a given agent or creates a new one.
@@ -47,7 +89,6 @@ function getChat(agent: Agent): Chat {
   }
 
   const chat = ai.chats.create({
-    // FIX: Per guidelines, use a supported model. 'gemini-2.5-flash' is correct.
     model: 'gemini-2.5-flash',
     config: {
       systemInstruction: agent.prompt,
@@ -70,6 +111,5 @@ export async function generateResponse(
   }
   const chat = getChat(agent);
   const response: GenerateContentResponse = await chat.sendMessage({ message });
-  // FIX: Per guidelines, response.text is the correct way to get the text.
   return response.text;
 }
