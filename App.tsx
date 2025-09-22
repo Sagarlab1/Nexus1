@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { AGENTS } from './constants';
 import type { Agent, Message } from './types';
-import { initializeAi, generateResponse, setAndInitializeAi, clearApiKey } from './services/ai';
+import { initializeAi, generateResponse, clearApiKey, setAndInitializeAi } from './services/ai';
 import { useSound } from './hooks/useSound';
 
 // Component Imports
@@ -20,10 +20,10 @@ import LatinoChallengesPage from './components/LatinoChallengesPage';
 import CognitiveGymPage from './components/CognitiveGymPage';
 
 export type View = 'chat' | 'nexus_zero_course' | 'programs' | 'challenges' | 'cognitive_gym';
-type AppStatus = 'loading' | 'ready' | 'needs_key';
+type AppStatus = 'initializing' | 'ready' | 'needs_key';
 
 const App: React.FC = () => {
-  const [appStatus, setAppStatus] = useState<AppStatus>('loading');
+  const [appStatus, setAppStatus] = useState<AppStatus>('initializing');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [messagesByAgent, setMessagesByAgent] = useState<Record<string, Message[]>>({});
   const [activeAgent, setActiveAgent] = useState<Agent>(AGENTS[2]); // Default to Nexus
@@ -38,17 +38,32 @@ const App: React.FC = () => {
   const playSound = useSound();
   
   useEffect(() => {
-    const attemptInitialization = async () => {
-      const success = await initializeAi();
-      if (success) {
-        setAppStatus('ready');
-      } else {
-        setAppStatus('needs_key');
-      }
+    const init = async () => {
+        try {
+            const isReady = await initializeAi();
+            setAppStatus(isReady ? 'ready' : 'needs_key');
+        } catch (e: any) {
+            console.error("Unexpected Initialization error:", e.message);
+            setAppStatus('needs_key'); // Fallback to prompt if anything unexpected happens
+        }
     };
-    
-    attemptInitialization();
+    init();
   }, []);
+
+  const handleSetKey = async (apiKey: string) => {
+    try {
+      await setAndInitializeAi(apiKey);
+      setAppStatus('ready');
+    } catch (error: any) {
+      console.error("Failed to set API Key:", error);
+      throw error; // Re-throw to be caught by the ApiKeyPrompt component
+    }
+  };
+
+  const handleResetKey = () => {
+    clearApiKey();
+    window.location.reload();
+  };
 
 
   const messages = messagesByAgent[activeAgent.id] || [];
@@ -82,9 +97,13 @@ const App: React.FC = () => {
       const agentMessage: Message = { id: Date.now() + 1, text: responseText, sender: 'agent' };
       setMessages(prev => [...prev, agentMessage]);
       playSound('receive');
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error al generar respuesta:", error);
-      const errorMessage: Message = { id: Date.now() + 1, text: "Lo siento, ocurrió un error. Por favor, intenta de nuevo.", sender: 'agent' };
+       if (error.message.includes("configúrala de nuevo")) {
+        handleResetKey(); // If key becomes invalid, force re-authentication.
+        return;
+      }
+      const errorMessage: Message = { id: Date.now() + 1, text: `Lo siento, ocurrió un error: ${error.message}`, sender: 'agent' };
       setMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
@@ -107,15 +126,6 @@ const App: React.FC = () => {
   const handleStopGeneration = () => setIsLoading(false);
   const handleToggleListening = () => setIsListening(prev => !prev);
   const handleStopSpeaking = () => setIsSpeaking(false);
-  const handleResetKey = () => {
-      clearApiKey();
-      window.location.reload();
-  };
-
-  const handleSetKey = async (apiKey: string) => {
-      await setAndInitializeAi(apiKey);
-      setAppStatus('ready');
-  };
 
   const renderActiveView = () => {
     switch (activeView) {
@@ -127,7 +137,7 @@ const App: React.FC = () => {
     }
   };
   
-  if (appStatus === 'loading') {
+  if (appStatus === 'initializing') {
     return (
         <div className="fixed inset-0 bg-gray-900 z-50 flex flex-col items-center justify-center text-white">
             <NexusLogo className="w-20 h-20 text-cyan-400 animate-spin mb-4" />

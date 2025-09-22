@@ -9,7 +9,6 @@ import type { View } from '../App';
 import DumbbellIcon from './icons/DumbbellIcon';
 import LogOutIcon from './icons/LogOutIcon';
 
-
 interface UserRankPanelProps {
   rank: string;
   activeView: View;
@@ -91,7 +90,7 @@ const UserRankPanel: React.FC<UserRankPanelProps> = ({ rank, activeView, onNavig
         </button>
       </nav>
       
-      <div className="mt-4 space-y-2">
+      <div className="mt-4 pt-4 border-t border-gray-700/50 space-y-2">
          <button 
             onClick={onOpenPremium}
             className="w-full flex items-center justify-center gap-2 text-yellow-400 p-3 rounded-lg bg-yellow-500/10 hover:bg-yellow-500/20 transition-colors"
@@ -99,12 +98,12 @@ const UserRankPanel: React.FC<UserRankPanelProps> = ({ rank, activeView, onNavig
             <StarIcon className="w-5 h-5" />
             <span className="font-bold">Ver Plan Premium</span>
           </button>
-          <button 
+           <button 
             onClick={onResetKey}
-            className="w-full flex items-center justify-center gap-2 text-gray-400 p-3 rounded-lg bg-gray-800/50 hover:bg-gray-700/70 transition-colors"
+            className="w-full flex items-center justify-center gap-2 text-gray-400 p-3 rounded-lg hover:bg-gray-700/50 transition-colors"
           >
             <LogOutIcon className="w-5 h-5" />
-            <span className="font-semibold text-sm">Cambiar API Key</span>
+            <span className="font-semibold">Cambiar API Key</span>
           </button>
       </div>
     </div>
