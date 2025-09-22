@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { AGENTS } from './constants';
 import type { Agent, Message } from './types';
-import { initializeAi, generateResponse, setAndInitializeAi, clearApiKey } from './services/ai';
+import { initializeAi, generateResponse, clearApiKey, setAndInitializeAi } from './services/ai';
 import { useSound } from './hooks/useSound';
 
 // Component Imports
@@ -13,6 +13,7 @@ import ChatModal from './components/ChatModal';
 import FloatingChatButton from './components/FloatingChatButton';
 import NexusLogo from './components/icons/NexusLogo';
 import ApiKeyPrompt from './components/ApiKeyPrompt';
+import AlertTriangleIcon from './components/icons/AlertTriangleIcon';
 
 
 // Page/View Imports
@@ -22,7 +23,7 @@ import LatinoChallengesPage from './components/LatinoChallengesPage';
 import CognitiveGymPage from './components/CognitiveGymPage';
 
 export type View = 'chat' | 'nexus_zero_course' | 'programs' | 'challenges' | 'cognitive_gym';
-type AppStatus = 'loading' | 'needs_key' | 'config_error' | 'ready';
+type AppStatus = 'loading' | 'needs_key' | 'error' | 'ready';
 
 const App: React.FC = () => {
   const [appStatus, setAppStatus] = useState<AppStatus>('loading');
@@ -40,26 +41,20 @@ const App: React.FC = () => {
   
   const playSound = useSound();
   
-  const attemptInitialization = useCallback(async () => {
-    setInitError(null);
-    setAppStatus('loading');
-    try {
-        const isReady = await initializeAi();
-        if (isReady) {
-            setAppStatus('ready');
-        } else {
-            setAppStatus('needs_key');
-        }
-    } catch (error: any) {
-        console.error("AI Initialization failed:", error);
-        setInitError(error.message);
-        setAppStatus('needs_key'); // Show prompt again with error
-    }
-  }, []);
-
   useEffect(() => {
+    const attemptInitialization = async () => {
+      try {
+          const isReady = await initializeAi();
+          setAppStatus(isReady ? 'ready' : 'needs_key');
+      } catch (error: any) {
+          console.error("AI Initialization failed unexpectedly:", error);
+          setInitError(error.message);
+          setAppStatus('error');
+      }
+    };
+    
     attemptInitialization();
-  }, [attemptInitialization]);
+  }, []);
 
 
   const messages = messagesByAgent[activeAgent.id] || [];
@@ -77,24 +72,6 @@ const App: React.FC = () => {
       }]);
     }
   }, [activeAgent.id, messagesByAgent, appStatus]);
-
-  const handleApiKeySubmit = async (apiKey: string) => {
-    setInitError(null);
-    setIsLoading(true);
-    try {
-        await setAndInitializeAi(apiKey);
-        setAppStatus('ready');
-    } catch (error: any) {
-        setInitError(error.message);
-    } finally {
-        setIsLoading(false);
-    }
-  };
-
-  const handleResetKey = () => {
-    clearApiKey();
-    window.location.reload();
-  };
 
   const handleLogin = () => setIsLoggedIn(true);
 
@@ -133,6 +110,22 @@ const App: React.FC = () => {
     }
   };
   
+  const handleKeySubmit = async (apiKey: string) => {
+    try {
+      await setAndInitializeAi(apiKey);
+      setAppStatus('ready');
+      playSound('receive');
+    } catch (error: any) {
+      console.error("Failed to set API Key:", error.message);
+      throw error; 
+    }
+  };
+  
+  const handleResetKey = () => {
+    clearApiKey();
+    window.location.reload();
+  };
+  
   const handleStopGeneration = () => setIsLoading(false);
   const handleToggleListening = () => setIsListening(prev => !prev);
   const handleStopSpeaking = () => setIsSpeaking(false);
@@ -157,14 +150,15 @@ const App: React.FC = () => {
   }
 
   if (appStatus === 'needs_key') {
-    return <ApiKeyPrompt onSubmit={handleApiKeySubmit} error={initError} isLoading={isLoading} />;
+     return <ApiKeyPrompt onSubmit={handleKeySubmit} />;
   }
-
-  if (appStatus === 'config_error') {
+  
+  if (appStatus === 'error') {
      return (
-        <div className="fixed inset-0 bg-gray-900 text-white flex flex-col items-center justify-center p-4">
-          <h2 className="text-2xl font-bold text-red-500 mb-4">Error Inesperado</h2>
-          <p className="text-center max-w-md">{initError || "Ocurrió un error desconocido durante la inicialización."}</p>
+        <div className="fixed inset-0 bg-gray-900 z-50 flex flex-col items-center justify-center text-white p-4 text-center">
+            <AlertTriangleIcon className="w-20 h-20 text-red-400 mb-4" />
+            <h1 className="text-2xl text-red-300 mb-2">Ocurrió un error inesperado</h1>
+            <p className="text-gray-400 max-w-md">{initError || "No se pudo inicializar la aplicación. Por favor, intenta refrescar la página."}</p>
         </div>
      );
   }
