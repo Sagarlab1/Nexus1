@@ -1,4 +1,3 @@
-
 import { GoogleGenAI, Chat, GenerateContentResponse } from "@google/genai";
 import type { Agent } from '../types';
 
@@ -9,25 +8,26 @@ const chatSessions = new Map<string, Chat>();
  * Initializes the GoogleGenAI client using the API_KEY from environment variables.
  * Throws an error if the API key is not found or invalid.
  */
-export function initializeAi(): void {
-  console.log("Iniciando el servicio de IA...");
+export async function initializeAi(): Promise<void> {
+  console.log("Intentando inicializar el servicio de IA desde variables de entorno...");
+
   const apiKey = process.env.API_KEY;
 
-  if (!apiKey) {
-    console.error("Error: La variable de entorno API_KEY no está definida.");
-    throw new Error("API Key no encontrada. Asegúrate de que la variable de entorno `API_KEY` esté configurada y que el proyecto se haya redesplegado.");
+  if (!apiKey || typeof apiKey !== 'string' || apiKey.trim() === '') {
+    console.error("Error: La variable de entorno API_KEY no está configurada o está vacía.");
+    throw new Error("La variable de entorno API_KEY no está configurada. Por favor, configúrala en tu entorno de despliegue.");
   }
   
-  console.log("API Key encontrada. Inicializando GoogleGenAI...");
+  console.log("Clave de API encontrada en variables de entorno. Inicializando GoogleGenAI...");
 
   try {
     ai = new GoogleGenAI({ apiKey });
-    // Clear any previous chat sessions if re-initializing
-    chatSessions.clear();
+    // A test call could be made here to validate the key, but for now we assume it's valid if it initializes
+    chatSessions.clear(); // Clear any previous chat sessions if re-initializing
     console.log("GoogleGenAI inicializado exitosamente.");
   } catch (e: any) {
     console.error("Fallo al inicializar GoogleGenAI:", e.message);
-    throw new Error(`La API Key parece ser inválida o ha ocurrido un error de red. Por favor, verifica la clave y tu conexión.`);
+    throw new Error(`La API_KEY proporcionada parece ser inválida. Error: ${e.message}`);
   }
 }
 
