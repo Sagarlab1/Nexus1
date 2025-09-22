@@ -10,17 +10,24 @@ const chatSessions = new Map<string, Chat>();
  * Throws an error if the API key is not found or invalid.
  */
 export function initializeAi(): void {
+  console.log("Iniciando el servicio de IA...");
   const apiKey = process.env.API_KEY;
+
   if (!apiKey) {
-    throw new Error("API Key no encontrada. Asegúrate de que la variable de entorno `API_KEY` esté configurada.");
+    console.error("Error: La variable de entorno API_KEY no está definida.");
+    throw new Error("API Key no encontrada. Asegúrate de que la variable de entorno `API_KEY` esté configurada y que el proyecto se haya redesplegado.");
   }
+  
+  console.log("API Key encontrada. Inicializando GoogleGenAI...");
+
   try {
     ai = new GoogleGenAI({ apiKey });
     // Clear any previous chat sessions if re-initializing
     chatSessions.clear();
+    console.log("GoogleGenAI inicializado exitosamente.");
   } catch (e: any) {
-    console.error("Fallo al inicializar GoogleGenAI:", e);
-    throw new Error(`La API Key proporcionada es inválida o ha ocurrido un error de red.`);
+    console.error("Fallo al inicializar GoogleGenAI:", e.message);
+    throw new Error(`La API Key parece ser inválida o ha ocurrido un error de red. Por favor, verifica la clave y tu conexión.`);
   }
 }
 

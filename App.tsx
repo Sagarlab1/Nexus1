@@ -12,6 +12,7 @@ import PremiumModal from './components/PremiumModal';
 import ChatModal from './components/ChatModal';
 import FloatingChatButton from './components/FloatingChatButton';
 import NexusLogo from './components/icons/NexusLogo';
+import AlertTriangleIcon from './components/icons/AlertTriangleIcon';
 
 // Page/View Imports
 import NexusZeroPage from './components/NexusZeroPage';
@@ -25,6 +26,7 @@ const App: React.FC = () => {
   const [isAiReady, setIsAiReady] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
   const [initializationError, setInitializationError] = useState<string | null>(null);
+  const [loadingMessage, setLoadingMessage] = useState('Booting Nexus Sapiens Core...');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [messagesByAgent, setMessagesByAgent] = useState<Record<string, Message[]>>({});
   const [activeAgent, setActiveAgent] = useState<Agent>(AGENTS[2]); // Default to Nexus
@@ -37,19 +39,43 @@ const App: React.FC = () => {
   const [isSpeaking, setIsSpeaking] = useState(false);
   
   const playSound = useSound();
-
+  
   useEffect(() => {
-    try {
-      initializeAi();
-      setIsAiReady(true);
-    } catch (error: any) {
-      console.error("Fallo al inicializar la IA:", error);
-      setInitializationError(error.message || "Ocurrió un error desconocido.");
-      setIsAiReady(false);
-    } finally {
-      setIsInitializing(false);
-    }
+    const init = async () => {
+      try {
+        await new Promise(resolve => setTimeout(resolve, 500)); // Brief delay for aesthetics
+        initializeAi();
+        setIsAiReady(true);
+      } catch (error: any) {
+        console.error("Fallo al inicializar la IA:", error);
+        setInitializationError(error.message || "Ocurrió un error desconocido.");
+        setIsAiReady(false);
+      } finally {
+        setIsInitializing(false);
+      }
+    };
+    init();
   }, []);
+  
+   useEffect(() => {
+    if (isInitializing) {
+      const messages = [
+        'Establishing Secure Connection...',
+        'Initializing AI Agents...',
+        'Calibrating Cognitive Matrix...',
+      ];
+      let i = 0;
+      const interval = setInterval(() => {
+        if (i < messages.length) {
+          setLoadingMessage(messages[i]);
+          i++;
+        } else {
+          clearInterval(interval);
+        }
+      }, 1500);
+      return () => clearInterval(interval);
+    }
+  }, [isInitializing]);
 
 
   const messages = messagesByAgent[activeAgent.id] || [];
@@ -120,8 +146,9 @@ const App: React.FC = () => {
 
   if (isInitializing) {
     return (
-      <div className="fixed inset-0 bg-gray-900 z-50 flex items-center justify-center">
+      <div className="fixed inset-0 bg-gray-900 z-50 flex flex-col items-center justify-center transition-opacity duration-500">
         <NexusLogo className="w-24 h-24 text-cyan-400 animate-pulse" />
+        <p className="mt-4 text-cyan-300 font-mono">{loadingMessage}</p>
       </div>
     );
   }
@@ -129,13 +156,40 @@ const App: React.FC = () => {
   if (!isAiReady) {
      return (
         <div className="fixed inset-0 bg-gray-900 z-50 flex items-center justify-center p-4 text-white">
-          <div className="w-full max-w-md mx-auto bg-gray-800 border border-red-500 rounded-lg p-8 shadow-2xl text-center">
-             <h1 className="text-2xl font-bold mb-3">Error de Inicialización de IA</h1>
-             <p className="text-red-300 mb-4">{initializationError}</p>
-             <p className="text-sm text-gray-400">
-                Por favor, asegúrate de que la variable de entorno <code className="bg-gray-700 text-cyan-300 font-mono px-1 py-0.5 rounded-md">API_KEY</code> esté configurada correctamente en tu entorno de despliegue.
-             </p>
-          </div>
+            <div className="w-full max-w-2xl mx-auto bg-gray-800 border border-red-500/50 rounded-lg p-8 shadow-2xl">
+                <div className="flex flex-col items-center text-center">
+                    <AlertTriangleIcon className="w-16 h-16 text-red-400 mb-4" />
+                    <h1 className="text-3xl font-bold mb-2">Error de Conexión con IA</h1>
+                    <p className="text-red-300 mb-6 max-w-md">{initializationError}</p>
+                </div>
+
+                <div className="bg-gray-900/50 p-6 rounded-lg">
+                    <h2 className="text-xl font-semibold mb-4 text-cyan-300">Guía de Solución de Problemas</h2>
+                    <ol className="space-y-4 text-gray-300">
+                        <li className="flex items-start">
+                            <span className="bg-gray-700 text-cyan-400 font-bold rounded-full w-6 h-6 flex items-center justify-center mr-3 flex-shrink-0">1</span>
+                            <div>
+                                <strong>Verifica la Variable de Entorno en Vercel:</strong>
+                                <p className="text-sm text-gray-400">Asegúrate de haber creado una variable llamada <code className="bg-gray-700 text-cyan-300 font-mono px-1.5 py-1 rounded-md">API_KEY</code> en la configuración de tu proyecto.</p>
+                            </div>
+                        </li>
+                        <li className="flex items-start">
+                            <span className="bg-gray-700 text-cyan-400 font-bold rounded-full w-6 h-6 flex items-center justify-center mr-3 flex-shrink-0">2</span>
+                            <div>
+                                <strong>Confirma el Valor de la Clave:</strong>
+                                <p className="text-sm text-gray-400">Comprueba que el valor de la clave de API de Google Gemini esté pegado correctamente, sin espacios adicionales.</p>
+                            </div>
+                        </li>
+                        <li className="flex items-start">
+                            <span className="bg-gray-700 text-cyan-400 font-bold rounded-full w-6 h-6 flex items-center justify-center mr-3 flex-shrink-0">3</span>
+                            <div>
+                                <strong className="text-yellow-300">Redespliega tu Proyecto (¡Muy Importante!):</strong>
+                                <p className="text-sm text-gray-400">Después de guardar la variable de entorno, debes volver a desplegar ("Redeploy") tu proyecto en Vercel para que los cambios surtan efecto.</p>
+                            </div>
+                        </li>
+                    </ol>
+                </div>
+            </div>
         </div>
     );
   }
