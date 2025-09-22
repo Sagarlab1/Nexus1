@@ -12,6 +12,7 @@ import ChatModal from './components/ChatModal';
 import FloatingChatButton from './components/FloatingChatButton';
 import NexusLogo from './components/icons/NexusLogo';
 import ApiKeyPrompt from './components/ApiKeyPrompt';
+import ConfigurationErrorScreen from './components/ConfigurationErrorScreen';
 
 // Page/View Imports
 import NexusZeroPage from './components/NexusZeroPage';
@@ -20,10 +21,11 @@ import LatinoChallengesPage from './components/LatinoChallengesPage';
 import CognitiveGymPage from './components/CognitiveGymPage';
 
 export type View = 'chat' | 'nexus_zero_course' | 'programs' | 'challenges' | 'cognitive_gym';
-type AppStatus = 'initializing' | 'ready' | 'needs_key';
+type AppStatus = 'initializing' | 'ready' | 'needs_key' | 'error';
 
 const App: React.FC = () => {
   const [appStatus, setAppStatus] = useState<AppStatus>('initializing');
+  const [configError, setConfigError] = useState<Error | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [messagesByAgent, setMessagesByAgent] = useState<Record<string, Message[]>>({});
   const [activeAgent, setActiveAgent] = useState<Agent>(AGENTS[2]); // Default to Nexus
@@ -43,8 +45,9 @@ const App: React.FC = () => {
             const isReady = await initializeAi();
             setAppStatus(isReady ? 'ready' : 'needs_key');
         } catch (e: any) {
-            console.error("Unexpected Initialization error:", e.message);
-            setAppStatus('needs_key'); // Fallback to prompt if anything unexpected happens
+            console.error("Unexpected Initialization error:", e);
+            setConfigError(e);
+            setAppStatus('error');
         }
     };
     init();
@@ -141,61 +144,4 @@ const App: React.FC = () => {
     return (
         <div className="fixed inset-0 bg-gray-900 z-50 flex flex-col items-center justify-center text-white">
             <NexusLogo className="w-20 h-20 text-cyan-400 animate-spin mb-4" />
-            <p className="text-xl text-gray-300">Inicializando Agentes de IA...</p>
-        </div>
-    );
-  }
-  
-  if (appStatus === 'needs_key') {
-     return <ApiKeyPrompt onSetKey={handleSetKey} />;
-  }
-
-  if (!isLoggedIn) {
-    return <LoginScreen onLogin={handleLogin} />;
-  }
-
-  return (
-    <div className="bg-gray-900 text-white min-h-screen font-sans bg-cover bg-center" style={{ backgroundImage: "url('/background.jpg')" }}>
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm"></div>
-      <div className="relative p-4 grid grid-cols-1 lg:grid-cols-4 gap-4 h-screen">
-        <div className="lg:col-span-1 h-full">
-          <UserRankPanel 
-            rank="Aprendiz Consciente"
-            activeView={isChatModalOpen ? 'chat' : activeView}
-            onNavigate={handleNavigate}
-            onOpenPremium={() => setIsPremiumModalOpen(true)}
-            onResetKey={handleResetKey}
-          />
-        </div>
-        <div className="lg:col-span-3 h-full overflow-hidden">
-            {renderActiveView()}
-        </div>
-      </div>
-      
-      {activeView !== 'chat' && !isChatModalOpen && (
-          <FloatingChatButton agent={activeAgent} onClick={() => setIsChatModalOpen(true)} />
-      )}
-
-      {isChatModalOpen && (
-          <ChatModal
-            onClose={() => setIsChatModalOpen(false)}
-            messages={messages}
-            activeAgent={activeAgent}
-            onSendMessage={handleSendMessage}
-            isLoading={isLoading}
-            onStopGeneration={handleStopGeneration}
-            input={input}
-            setInput={setInput}
-            isListening={isListening}
-            onToggleListening={handleToggleListening}
-            isSpeaking={isSpeaking}
-            onStopSpeaking={handleStopSpeaking}
-          />
-      )}
-
-      {isPremiumModalOpen && <PremiumModal onClose={() => setIsPremiumModalOpen(false)} />}
-    </div>
-  );
-};
-
-export default App;
+            <p className="text-xl text-gray-300">
