@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { AGENTS } from './constants';
 import type { Agent, Message } from './types';
-import { initializeAi, generateResponse } from './services/ai';
+// FIX: Import `generateResponse` to make it available in the component.
+import { initializeAi, setAndValidateApiKey, clearApiKey, generateResponse } from './services/ai';
 import { useSound } from './hooks/useSound';
 
 // Component Imports
@@ -12,6 +13,7 @@ import ChatModal from './components/ChatModal';
 import FloatingChatButton from './components/FloatingChatButton';
 import NexusLogo from './components/icons/NexusLogo';
 import ConfigurationErrorScreen from './components/ConfigurationErrorScreen';
+import ApiKeyPrompt from './components/ApiKeyPrompt';
 
 // Page/View Imports
 import NexusZeroPage from './components/NexusZeroPage';
@@ -20,7 +22,7 @@ import LatinoChallengesPage from './components/LatinoChallengesPage';
 import CognitiveGymPage from './components/CognitiveGymPage';
 
 export type View = 'chat' | 'nexus_zero_course' | 'programs' | 'challenges' | 'cognitive_gym';
-type AppStatus = 'initializing' | 'ready' | 'error';
+type AppStatus = 'initializing' | 'needs_key' | 'ready' | 'error';
 
 const App: React.FC = () => {
   const [appStatus, setAppStatus] = useState<AppStatus>('initializing');
@@ -39,13 +41,10 @@ const App: React.FC = () => {
   const playSound = useSound();
   
   useEffect(() => {
-    try {
-        initializeAi();
+    if (initializeAi()) {
         setAppStatus('ready');
-    } catch (e: any) {
-        console.error("Error de inicialización:", e);
-        setConfigError(e);
-        setAppStatus('error');
+    } else {
+        setAppStatus('needs_key');
     }
   }, []);
 
@@ -66,6 +65,16 @@ const App: React.FC = () => {
   }, [activeAgent, appStatus, messagesByAgent]);
 
   const handleLogin = () => setIsLoggedIn(true);
+
+  const handleSetKey = async (apiKey: string) => {
+    await setAndValidateApiKey(apiKey);
+    setAppStatus('ready');
+  };
+
+  const handleResetKey = useCallback(() => {
+      clearApiKey();
+      setAppStatus('needs_key');
+  }, []);
 
   const handleSendMessage = async () => {
     if (!input.trim() || isLoading) return;
@@ -124,6 +133,10 @@ const App: React.FC = () => {
         </div>
     );
   }
+  
+  if (appStatus === 'needs_key') {
+      return <ApiKeyPrompt onSetKey={handleSetKey} />;
+  }
 
   if (appStatus === 'error') {
     return <ConfigurationErrorScreen error={configError!} onReset={() => window.location.reload()} />;
@@ -141,6 +154,7 @@ const App: React.FC = () => {
           activeView={activeView} 
           onNavigate={handleNavigate}
           onOpenPremium={() => setIsPremiumModalOpen(true)}
+          onResetKey={handleResetKey}
          />
       </div>
       <main className="flex-1 h-full">

@@ -3,27 +3,71 @@ import type { Agent } from '../types';
 
 let ai: GoogleGenAI | null = null;
 const chatSessions = new Map<string, Chat>();
+const API_KEY_STORAGE_KEY = 'nexus-sapiens-api-key';
 
 /**
- * Initializes the AI service using the API_KEY from environment variables.
- * Throws an error if the API key is not configured.
+ * Tries to initialize the AI service from localStorage.
+ * Returns true if successful, false otherwise.
  */
-export function initializeAi(): void {
-  if (ai) return;
+export function initializeAi(): boolean {
+  if (ai) return true;
 
-  // The API key MUST be obtained exclusively from the environment variable.
-  const apiKey = process.env.API_KEY; 
-  if (!apiKey) {
-    throw new Error("La variable de entorno API_KEY no está configurada. La aplicación no puede iniciarse. Por favor, asegúrese de que la clave de API esté configurada en el entorno de despliegue.");
+  const storedKey = localStorage.getItem(API_KEY_STORAGE_KEY);
+  
+  if (storedKey) {
+    ai = new GoogleGenAI({ apiKey: storedKey });
+    console.log("Servicio de IA inicializado desde localStorage.");
+    return true;
   }
   
-  ai = new GoogleGenAI({ apiKey });
-  console.log("Servicio de IA inicializado.");
+  return false;
+}
+
+/**
+ * Sets and validates a new API key by making a test request.
+ * Throws an error if the key is invalid.
+ */
+export async function setAndValidateApiKey(apiKey: string): Promise<void> {
+  if (!apiKey || apiKey.trim() === '') {
+    throw new Error("La clave de API no puede estar vacía.");
+  }
+  const tempAi = new GoogleGenAI({ apiKey });
+  try {
+    // A simple, low-cost request to validate the key
+    await tempAi.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: 'hello',
+        config: { thinkingConfig: { thinkingBudget: 0 } }
+    });
+    
+    // If validation succeeds, set the global instance and save to localStorage
+    ai = tempAi;
+    localStorage.setItem(API_KEY_STORAGE_KEY, apiKey);
+    chatSessions.clear(); // Clear old chat sessions with the previous key
+    console.log("Nueva clave de API validada y guardada.");
+  } catch (error: any) {
+    console.error("Error de validación de API key:", error);
+    // Provide a more user-friendly error message
+    if (error.message && (error.message.includes('API key not valid') || error.message.includes('permission'))) {
+        throw new Error("La clave de API proporcionada no es válida o no tiene los permisos necesarios.");
+    }
+    throw new Error("No se pudo verificar la clave de API. Verifica tu conexión a internet y que la clave sea correcta.");
+  }
+}
+
+/**
+ * Clears the stored API key and resets the AI service.
+ */
+export function clearApiKey(): void {
+    localStorage.removeItem(API_KEY_STORAGE_KEY);
+    ai = null;
+    chatSessions.clear();
+    console.log("Clave de API eliminada.");
 }
 
 function getChat(agent: Agent): Chat {
   if (!ai) {
-    throw new Error("El servicio de IA no está inicializado. Esto indica un problema de arranque en la aplicación.");
+    throw new Error("El servicio de IA no está inicializado. Por favor, configura tu clave de API.");
   }
 
   if (chatSessions.has(agent.id)) {
@@ -46,7 +90,7 @@ export async function generateResponse(
   message: string
 ): Promise<string> {
    if (!ai) {
-    throw new Error("El servicio de IA no está disponible. Por favor, refresca la página.");
+    throw new Error("El servicio de IA no está disponible. Por favor, refresca la página o reconfigura tu clave de API.");
   }
   
   const chat = getChat(agent);
@@ -57,7 +101,10 @@ export async function generateResponse(
   } catch (error: any) {
     console.error("Error al generar respuesta desde Gemini:", error);
     if (error.message.includes('API key not valid')) {
-        throw new Error("Ocurrió un error con el servicio de IA. La clave de API configurada podría ser inválida.");
+        clearApiKey();
+        // Force a reload to show the API key prompt again
+        window.location.reload();
+        throw new Error("La clave de API ha dejado de ser válida. Se requiere reconfiguración.");
     }
     throw new Error("Hubo un problema al comunicarse con el agente de IA.");
   }
