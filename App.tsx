@@ -1,8 +1,8 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AGENTS } from './constants';
 import type { Agent, Message } from './types';
-import { initializeAi, generateResponse, clearApiKey, setAndInitializeAi } from './services/ai';
+import { initializeAi, setAndInitializeAi, clearApiKey, generateResponse } from './services/ai';
 import { useSound } from './hooks/useSound';
 
 // Component Imports
@@ -12,9 +12,8 @@ import PremiumModal from './components/PremiumModal';
 import ChatModal from './components/ChatModal';
 import FloatingChatButton from './components/FloatingChatButton';
 import NexusLogo from './components/icons/NexusLogo';
+import ConfigurationErrorScreen from './components/ConfigurationErrorScreen';
 import ApiKeyPrompt from './components/ApiKeyPrompt';
-import AlertTriangleIcon from './components/icons/AlertTriangleIcon';
-
 
 // Page/View Imports
 import NexusZeroPage from './components/NexusZeroPage';
@@ -23,7 +22,7 @@ import LatinoChallengesPage from './components/LatinoChallengesPage';
 import CognitiveGymPage from './components/CognitiveGymPage';
 
 export type View = 'chat' | 'nexus_zero_course' | 'programs' | 'challenges' | 'cognitive_gym';
-type AppStatus = 'loading' | 'needs_key' | 'error' | 'ready';
+type AppStatus = 'loading' | 'needs_key' | 'ready' | 'error';
 
 const App: React.FC = () => {
   const [appStatus, setAppStatus] = useState<AppStatus>('loading');
@@ -45,9 +44,13 @@ const App: React.FC = () => {
     const attemptInitialization = async () => {
       try {
           const isReady = await initializeAi();
-          setAppStatus(isReady ? 'ready' : 'needs_key');
+          if (isReady) {
+            setAppStatus('ready');
+          } else {
+            setAppStatus('needs_key');
+          }
       } catch (error: any) {
-          console.error("AI Initialization failed unexpectedly:", error);
+          console.error("Critical AI Initialization failed:", error);
           setInitError(error.message);
           setAppStatus('error');
       }
@@ -71,7 +74,7 @@ const App: React.FC = () => {
         sender: 'agent',
       }]);
     }
-  }, [activeAgent.id, messagesByAgent, appStatus]);
+  }, [activeAgent, appStatus, messagesByAgent]);
 
   const handleLogin = () => setIsLoggedIn(true);
 
@@ -110,20 +113,20 @@ const App: React.FC = () => {
     }
   };
   
-  const handleKeySubmit = async (apiKey: string) => {
+  const handleKeySubmit = async (key: string): Promise<string | undefined> => {
     try {
-      await setAndInitializeAi(apiKey);
+      await setAndInitializeAi(key);
       setAppStatus('ready');
-      playSound('receive');
+      return undefined; // Success
     } catch (error: any) {
-      console.error("Failed to set API Key:", error.message);
-      throw error; 
+      return error.message; // Failure, return error message to prompt
     }
   };
-  
+
   const handleResetKey = () => {
     clearApiKey();
-    window.location.reload();
+    setAppStatus('needs_key');
+    setMessagesByAgent({});
   };
   
   const handleStopGeneration = () => setIsLoading(false);
@@ -148,19 +151,13 @@ const App: React.FC = () => {
         </div>
     );
   }
-
+  
   if (appStatus === 'needs_key') {
-     return <ApiKeyPrompt onSubmit={handleKeySubmit} />;
+     return <ApiKeyPrompt onKeySubmit={handleKeySubmit} />;
   }
   
   if (appStatus === 'error') {
-     return (
-        <div className="fixed inset-0 bg-gray-900 z-50 flex flex-col items-center justify-center text-white p-4 text-center">
-            <AlertTriangleIcon className="w-20 h-20 text-red-400 mb-4" />
-            <h1 className="text-2xl text-red-300 mb-2">Ocurrió un error inesperado</h1>
-            <p className="text-gray-400 max-w-md">{initError || "No se pudo inicializar la aplicación. Por favor, intenta refrescar la página."}</p>
-        </div>
-     );
+     return <ConfigurationErrorScreen errorMessage={initError} />;
   }
 
   if (!isLoggedIn) {
