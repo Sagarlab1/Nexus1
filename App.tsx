@@ -12,7 +12,6 @@ import PremiumModal from './components/PremiumModal';
 import ChatModal from './components/ChatModal';
 import FloatingChatButton from './components/FloatingChatButton';
 import NexusLogo from './components/icons/NexusLogo';
-import ApiKeyPrompt from './components/ApiKeyPrompt';
 
 // Page/View Imports
 import NexusZeroPage from './components/NexusZeroPage';
@@ -24,7 +23,8 @@ export type View = 'chat' | 'nexus_zero_course' | 'programs' | 'challenges' | 'c
 
 const App: React.FC = () => {
   const [isAiReady, setIsAiReady] = useState(false);
-  const [aiError, setAiError] = useState<string | null>(null);
+  const [isInitializing, setIsInitializing] = useState(true);
+  const [initializationError, setInitializationError] = useState<string | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [messagesByAgent, setMessagesByAgent] = useState<Record<string, Message[]>>({});
   const [activeAgent, setActiveAgent] = useState<Agent>(AGENTS[2]); // Default to Nexus
@@ -35,52 +35,22 @@ const App: React.FC = () => {
   const [isChatModalOpen, setIsChatModalOpen] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const [isLoadingAi, setIsLoadingAi] = useState(true);
   
   const playSound = useSound();
 
-  const attemptAiInitialization = async (key: string) => {
+  useEffect(() => {
     try {
-      initializeAi(key);
+      initializeAi();
       setIsAiReady(true);
-      setAiError(null);
-      return true;
     } catch (error: any) {
       console.error("Fallo al inicializar la IA:", error);
-      setAiError(error.message || "Ocurrió un error desconocido.");
+      setInitializationError(error.message || "Ocurrió un error desconocido.");
       setIsAiReady(false);
-      // If the key from local storage is bad, remove it.
-      if (localStorage.getItem('user_api_key')) {
-        localStorage.removeItem('user_api_key');
-      }
-      return false;
+    } finally {
+      setIsInitializing(false);
     }
-  };
-
-  useEffect(() => {
-    const init = async () => {
-      setIsLoadingAi(true);
-      const envKey = process.env.API_KEY;
-      const localKey = localStorage.getItem('user_api_key');
-
-      if (envKey) {
-        await attemptAiInitialization(envKey);
-      } else if (localKey) {
-        await attemptAiInitialization(localKey);
-      }
-      setIsLoadingAi(false);
-    };
-    init();
   }, []);
 
-  const handleKeySubmit = async (key: string) => {
-    setIsLoadingAi(true);
-    const success = await attemptAiInitialization(key);
-    if (success) {
-      localStorage.setItem('user_api_key', key);
-    }
-    setIsLoadingAi(false);
-  };
 
   const messages = messagesByAgent[activeAgent.id] || [];
   const setMessages = (updater: React.SetStateAction<Message[]>) => {
@@ -148,7 +118,7 @@ const App: React.FC = () => {
     }
   };
 
-  if (isLoadingAi) {
+  if (isInitializing) {
     return (
       <div className="fixed inset-0 bg-gray-900 z-50 flex items-center justify-center">
         <NexusLogo className="w-24 h-24 text-cyan-400 animate-pulse" />
@@ -157,7 +127,17 @@ const App: React.FC = () => {
   }
 
   if (!isAiReady) {
-    return <ApiKeyPrompt errorMessage={aiError} onKeySubmit={handleKeySubmit} />;
+     return (
+        <div className="fixed inset-0 bg-gray-900 z-50 flex items-center justify-center p-4 text-white">
+          <div className="w-full max-w-md mx-auto bg-gray-800 border border-red-500 rounded-lg p-8 shadow-2xl text-center">
+             <h1 className="text-2xl font-bold mb-3">Error de Inicialización de IA</h1>
+             <p className="text-red-300 mb-4">{initializationError}</p>
+             <p className="text-sm text-gray-400">
+                Por favor, asegúrate de que la variable de entorno <code className="bg-gray-700 text-cyan-300 font-mono px-1 py-0.5 rounded-md">API_KEY</code> esté configurada correctamente en tu entorno de despliegue.
+             </p>
+          </div>
+        </div>
+    );
   }
 
   if (!isLoggedIn) {

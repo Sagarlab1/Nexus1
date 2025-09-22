@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Chat, GenerateContentResponse } from "@google/genai";
 import type { Agent } from '../types';
 
@@ -5,12 +6,13 @@ let ai: GoogleGenAI | null = null;
 const chatSessions = new Map<string, Chat>();
 
 /**
- * Initializes the GoogleGenAI client with a provided API key.
+ * Initializes the GoogleGenAI client using the API_KEY from environment variables.
  * Throws an error if the API key is not found or invalid.
  */
-export function initializeAi(apiKey: string): void {
+export function initializeAi(): void {
+  const apiKey = process.env.API_KEY;
   if (!apiKey) {
-    throw new Error("API Key no proporcionada para la inicialización.");
+    throw new Error("API Key no encontrada. Asegúrate de que la variable de entorno `API_KEY` esté configurada.");
   }
   try {
     ai = new GoogleGenAI({ apiKey });
