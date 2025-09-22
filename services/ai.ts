@@ -3,97 +3,27 @@ import type { Agent } from '../types';
 
 let ai: GoogleGenAI | null = null;
 const chatSessions = new Map<string, Chat>();
-const LOCAL_STORAGE_KEY = 'gemini_api_key';
 
 /**
- * Validates a given API key by making a simple, low-cost call.
- * @param apiKey The API key to validate.
- * @returns A GoogleGenAI instance if the key is valid.
- * @throws An error if the key is invalid.
+ * Initializes the AI service using the API_KEY from environment variables.
+ * Throws an error if the API key is not configured.
  */
-async function validateAndCreateAi(apiKey: string): Promise<GoogleGenAI> {
-  if (!apiKey || apiKey.trim() === '') {
-    throw new Error("La clave de API no puede estar vacía.");
+export function initializeAi(): void {
+  if (ai) return;
+
+  // The API key MUST be obtained exclusively from the environment variable.
+  const apiKey = process.env.API_KEY; 
+  if (!apiKey) {
+    throw new Error("La variable de entorno API_KEY no está configurada. La aplicación no puede iniciarse. Por favor, asegúrese de que la clave de API esté configurada en el entorno de despliegue.");
   }
-  const tempAi = new GoogleGenAI({ apiKey });
-  try {
-    // A simple, fast validation call to ensure the key is valid.
-    await tempAi.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: { parts: [{ text: 'validation_ping' }] },
-        config: { thinkingConfig: { thinkingBudget: 0 } }
-    });
-    return tempAi;
-  } catch (error: any) {
-    console.error("API Key validation failed:", error);
-    if (error.message.includes('API key not valid')) {
-      throw new Error("La clave de API proporcionada no es válida.");
-    }
-    throw new Error(`Falló la validación de la clave: ${error.message}`);
-  }
+  
+  ai = new GoogleGenAI({ apiKey });
+  console.log("Servicio de IA inicializado.");
 }
-
-/**
- * Tries to initialize the AI service from localStorage or environment variables.
- * @returns {Promise<boolean>} True if initialization was successful, false otherwise.
- */
-export async function initializeAi(): Promise<boolean> {
-  if (ai) return true;
-
-  // 1. Try localStorage first
-  const storedApiKey = localStorage.getItem(LOCAL_STORAGE_KEY);
-  if (storedApiKey) {
-    try {
-      ai = await validateAndCreateAi(storedApiKey);
-      console.log("AI service initialized from localStorage.");
-      return true;
-    } catch (error) {
-      console.warn("Stored API key is invalid, clearing it.", error);
-      clearApiKey(); // Clear invalid key
-    }
-  }
-
-  // 2. Fallback to environment variable
-  const envApiKey = process.env.NEXT_PUBLIC_API_KEY;
-  if (envApiKey) {
-    try {
-      ai = await validateAndCreateAi(envApiKey);
-      localStorage.setItem(LOCAL_STORAGE_KEY, envApiKey); // Cache the valid key
-      console.log("AI service initialized from environment variable and cached.");
-      return true;
-    } catch (error) {
-       console.error("Environment variable API key is invalid.", error);
-    }
-  }
-
-  return false; // No valid key found
-}
-
-/**
- * Sets and initializes the AI with a user-provided API key.
- * @param apiKey The user-provided API key.
- */
-export async function setAndInitializeAi(apiKey: string): Promise<void> {
-    ai = await validateAndCreateAi(apiKey);
-    localStorage.setItem(LOCAL_STORAGE_KEY, apiKey);
-    chatSessions.clear();
-    console.log("AI service initialized with user-provided key.");
-}
-
-/**
- * Clears the stored API key and resets the AI service.
- */
-export function clearApiKey(): void {
-  localStorage.removeItem(LOCAL_STORAGE_KEY);
-  ai = null;
-  chatSessions.clear();
-  console.log("API key cleared and AI service reset.");
-}
-
 
 function getChat(agent: Agent): Chat {
   if (!ai) {
-    throw new Error("El cliente de IA no ha sido inicializado. Esto no debería ocurrir si la app se cargó correctamente.");
+    throw new Error("El servicio de IA no está inicializado. Esto indica un problema de arranque en la aplicación.");
   }
 
   if (chatSessions.has(agent.id)) {
@@ -116,7 +46,7 @@ export async function generateResponse(
   message: string
 ): Promise<string> {
    if (!ai) {
-    throw new Error("El cliente de IA no está disponible. Por favor, refresca la página.");
+    throw new Error("El servicio de IA no está disponible. Por favor, refresca la página.");
   }
   
   const chat = getChat(agent);
@@ -125,10 +55,9 @@ export async function generateResponse(
     const response: GenerateContentResponse = await chat.sendMessage({ message });
     return response.text;
   } catch (error: any) {
-    console.error("Error generating response from Gemini:", error);
+    console.error("Error al generar respuesta desde Gemini:", error);
     if (error.message.includes('API key not valid')) {
-        clearApiKey();
-        throw new Error("La clave de API ha dejado de ser válida. Por favor, configúrala de nuevo.");
+        throw new Error("Ocurrió un error con el servicio de IA. La clave de API configurada podría ser inválida.");
     }
     throw new Error("Hubo un problema al comunicarse con el agente de IA.");
   }

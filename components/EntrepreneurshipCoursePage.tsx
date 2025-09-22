@@ -50,7 +50,8 @@ const EntrepreneurshipCoursePage: React.FC = () => {
     </div>
   );
   
-  const renderSection = (id: CourseSection, title: string, lessons: JSX.Element[], prev?: CourseSection, next?: CourseSection, finalCTA?: JSX.Element) => (
+  // FIX: Replaced JSX.Element with React.ReactElement to fix 'Cannot find namespace JSX' error.
+  const renderSection = (id: CourseSection, title: string, lessons: React.ReactElement[], prev?: CourseSection, next?: CourseSection, finalCTA?: React.ReactElement) => (
     <section className={`course-card ${activeSection === id ? '' : 'hidden'}`}>
       <h2 className="course-title">{title}</h2>
       {lessons}
@@ -98,7 +99,7 @@ const EntrepreneurshipCoursePage: React.FC = () => {
             {renderSection('week2', 'Módulo 2 — Herramientas: Construye tu Máquina de Crecimiento', [
                 renderLessonRow('e2l1', 'Ideación y Validación de Ideas', 'Ejercicio: Crea un Lean Canvas para tu idea y valida con 10 encuestas en redes.'),
                 renderLessonRow('e2l2', 'Modelos de Negocio Exponenciales', 'Ejercicio: Analiza un modelo exitoso y adáptalo a tu nicho (e.g., "Uber para educación").'),
-                renderLessonRow('e2l3', 'Herramientas Digitales', 'Ejercicio: Construye un landing page simple con Carrd o Webflow y mide tráfico inicial.'),
+                renderLessonRow('e2l3', 'Herramientas Digitales', 'Ejercicio: Construye un landing page simple com Carrd o Webflow y mide tráfico inicial.'),
             ], 'week1', 'week3')}
 
             {renderSection('week3', 'Módulo 3 — Aplicaciones y Proyecto Final: Escala a Nivel Global', [

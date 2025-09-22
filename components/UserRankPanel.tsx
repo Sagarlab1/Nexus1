@@ -14,7 +14,6 @@ interface UserRankPanelProps {
   activeView: View;
   onNavigate: (view: View, agentId?: string) => void;
   onOpenPremium: () => void;
-  onResetKey: () => void;
 }
 
 const NavButton = ({ icon: Icon, label, isActive, onClick }) => (
@@ -32,7 +31,7 @@ const NavButton = ({ icon: Icon, label, isActive, onClick }) => (
 );
 
 
-const UserRankPanel: React.FC<UserRankPanelProps> = ({ rank, activeView, onNavigate, onOpenPremium, onResetKey }) => {
+const UserRankPanel: React.FC<UserRankPanelProps> = ({ rank, activeView, onNavigate, onOpenPremium }) => {
   return (
     <div className="bg-gray-900/50 backdrop-blur-sm border border-gray-700/50 rounded-lg p-6 shadow-lg shadow-black/20 text-white flex flex-col h-full">
         <div className="w-full flex items-center text-left mb-4 group">
@@ -97,13 +96,6 @@ const UserRankPanel: React.FC<UserRankPanelProps> = ({ rank, activeView, onNavig
           >
             <StarIcon className="w-5 h-5" />
             <span className="font-bold">Ver Plan Premium</span>
-          </button>
-           <button 
-            onClick={onResetKey}
-            className="w-full flex items-center justify-center gap-2 text-gray-400 p-3 rounded-lg hover:bg-gray-700/50 transition-colors"
-          >
-            <LogOutIcon className="w-5 h-5" />
-            <span className="font-semibold">Cambiar API Key</span>
           </button>
       </div>
     </div>

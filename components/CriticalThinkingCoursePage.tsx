@@ -48,7 +48,8 @@ const CriticalThinkingCoursePage: React.FC = () => {
     </div>
   );
   
-  const renderSection = (id: CourseSection, title: string, lessons: JSX.Element[], prev?: CourseSection, next?: CourseSection, finalCTA?: JSX.Element) => (
+  // FIX: Replaced JSX.Element with React.ReactElement to fix 'Cannot find namespace JSX' error.
+  const renderSection = (id: CourseSection, title: string, lessons: React.ReactElement[], prev?: CourseSection, next?: CourseSection, finalCTA?: React.ReactElement) => (
     <section className={`pc-course-card ${activeSection === id ? '' : 'hidden'}`}>
       <h2 className="pc-course-title">{title}</h2>
       {lessons}

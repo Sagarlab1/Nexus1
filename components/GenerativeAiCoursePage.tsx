@@ -49,7 +49,8 @@ const GenerativeAiCoursePage: React.FC = () => {
     </div>
   );
   
-  const renderSection = (id: CourseSection, title: string, lessons: JSX.Element[], prev?: CourseSection, next?: CourseSection, finalCTA?: JSX.Element) => (
+  // FIX: Replaced JSX.Element with React.ReactElement to fix 'Cannot find namespace JSX' error.
+  const renderSection = (id: CourseSection, title: string, lessons: React.ReactElement[], prev?: CourseSection, next?: CourseSection, finalCTA?: React.ReactElement) => (
     <section className={`course-card ${activeSection === id ? '' : 'hidden'}`}>
       <h2 className="course-title">{title}</h2>
       {lessons}
@@ -94,7 +95,7 @@ const GenerativeAiCoursePage: React.FC = () => {
                 renderLessonRow('g1l3', 'Mentalidad y Ambiente para GenAI', 'Ejercicio: Configura tu entorno y realiza un "sprint IA" diario (20 min prompting).'),
             ], 'intro', 'week2')}
             
-            {renderSection('week2', 'Módulo 2 — Herramientas y Técnicas: Construye con Agentes y Multimodalidad', [
+            {renderSection('week2', 'Módulo 2 — Herramientas y Técnicas: Construye com Agentes y Multimodalidad', [
                 renderLessonRow('g2l1', 'Prompting Avanzado y LLMs', 'Ejercicio: Crea prompts para tareas complejas usando Claude o GPT-4o.'),
                 renderLessonRow('g2l2', 'Multimodal AI y Agentes', 'Ejercicio: Usa LangChain para un agente que resuma noticias y genere visuals.'),
                 renderLessonRow('g2l3', 'Manejo de Datos Escalables', 'Ejercicio: Explora datasets en Kaggle y fine-tunea un modelo simple en Colab.'),

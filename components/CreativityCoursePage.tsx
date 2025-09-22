@@ -50,7 +50,8 @@ const CreativityCoursePage: React.FC = () => {
     </div>
   );
   
-  const renderSection = (id: CourseSection, title: string, lessons: JSX.Element[], prev?: CourseSection, next?: CourseSection, finalCTA?: JSX.Element) => (
+  // FIX: Replaced JSX.Element with React.ReactElement to fix 'Cannot find namespace JSX' error.
+  const renderSection = (id: CourseSection, title: string, lessons: React.ReactElement[], prev?: CourseSection, next?: CourseSection, finalCTA?: React.ReactElement) => (
     <section className={`course-card ${activeSection === id ? '' : 'hidden'}`}>
       <h2 className="course-title">{title}</h2>
       {lessons}
@@ -98,12 +99,12 @@ const CreativityCoursePage: React.FC = () => {
             {renderSection('week2', 'Módulo 2 — Herramientas y Técnicas: Armas de Ideas', [
                 renderLessonRow('c2l1', 'Brainstorming Cuántico', 'Ejercicio: Genera 100 ideas en 10 min. Brainstormea 50 soluciones locas para un problema y haz un video viral.'),
                 renderLessonRow('c2l2', 'Pensamiento Lateral', 'Ejercicio: Resuelve un riddle lateral y crea el tuyo propio.'),
-                renderLessonRow('c2l3', 'Analogías y Mapas Mentales', 'Ejercicio: Mapa mental de tu vida con analogías gamificadas.'),
+                renderLessonRow('c2l3', 'Analogías y Mapas Mentales', 'Ejercicio: Mapa mental de tu vida com analogías gamificadas.'),
             ], 'week1', 'week3')}
 
             {renderSection('week3', 'Módulo 3 — Aplicaciones y Proyecto Final: Lanza tu Revolución', [
                 renderLessonRow('c3l1', 'Creatividad en la Vida Diaria', 'Ejercicio: Hackea rutinas. Cambia 3 hábitos con twists creativos.'),
-                renderLessonRow('c3l2', 'Innovación en Negocios y Arte', 'Ejercicio: Crea modelos exponenciales. Resucita un negocio fallido con innovación.'),
+                renderLessonRow('c3l2', 'Innovación en Negocios y Arte', 'Ejercicio: Crea modelos exponenciales. Resucita un negocio fallido com innovación.'),
                 renderLessonRow('c3l3', 'Superar Bloqueos', 'Ejercicio: Usa técnicas como "Inversión" o IA-Coach. Aplica 3 técnicas a tu bloqueo principal.'),
             ], 'week2', 'resources', (
                  <div className="project-card">

@@ -26,9 +26,9 @@ const ConfigurationErrorScreen: React.FC<ConfigurationErrorScreenProps> = ({ err
 
         <button
           onClick={onReset}
-          className="bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-400 hover:to-orange-400 text-white font-bold py-3 px-8 rounded-lg text-lg transition-transform transform hover:scale-105 shadow-lg shadow-red-500/30"
+          className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white font-bold py-3 px-8 rounded-lg text-lg transition-transform transform hover:scale-105 shadow-lg shadow-cyan-500/30"
         >
-          Reiniciar Configuración
+          Recargar Página
         </button>
       </div>
     </div>
