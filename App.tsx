@@ -1,8 +1,7 @@
-
 import React, { useState, useEffect } from 'react';
 import { AGENTS } from './constants';
 import type { Agent, Message } from './types';
-import { initializeAi, setAndInitializeAi, clearApiKey, generateResponse } from './services/ai';
+import { initializeAi, generateResponse, setAndInitializeAi, clearApiKey } from './services/ai';
 import { useSound } from './hooks/useSound';
 
 // Component Imports
@@ -12,7 +11,6 @@ import PremiumModal from './components/PremiumModal';
 import ChatModal from './components/ChatModal';
 import FloatingChatButton from './components/FloatingChatButton';
 import NexusLogo from './components/icons/NexusLogo';
-import ConfigurationErrorScreen from './components/ConfigurationErrorScreen';
 import ApiKeyPrompt from './components/ApiKeyPrompt';
 
 // Page/View Imports
@@ -22,11 +20,10 @@ import LatinoChallengesPage from './components/LatinoChallengesPage';
 import CognitiveGymPage from './components/CognitiveGymPage';
 
 export type View = 'chat' | 'nexus_zero_course' | 'programs' | 'challenges' | 'cognitive_gym';
-type AppStatus = 'loading' | 'needs_key' | 'ready' | 'error';
+type AppStatus = 'loading' | 'ready' | 'needs_key';
 
 const App: React.FC = () => {
   const [appStatus, setAppStatus] = useState<AppStatus>('loading');
-  const [initError, setInitError] = useState<string | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [messagesByAgent, setMessagesByAgent] = useState<Record<string, Message[]>>({});
   const [activeAgent, setActiveAgent] = useState<Agent>(AGENTS[2]); // Default to Nexus
@@ -42,17 +39,11 @@ const App: React.FC = () => {
   
   useEffect(() => {
     const attemptInitialization = async () => {
-      try {
-          const isReady = await initializeAi();
-          if (isReady) {
-            setAppStatus('ready');
-          } else {
-            setAppStatus('needs_key');
-          }
-      } catch (error: any) {
-          console.error("Critical AI Initialization failed:", error);
-          setInitError(error.message);
-          setAppStatus('error');
+      const success = await initializeAi();
+      if (success) {
+        setAppStatus('ready');
+      } else {
+        setAppStatus('needs_key');
       }
     };
     
@@ -113,25 +104,18 @@ const App: React.FC = () => {
     }
   };
   
-  const handleKeySubmit = async (key: string): Promise<string | undefined> => {
-    try {
-      await setAndInitializeAi(key);
-      setAppStatus('ready');
-      return undefined; // Success
-    } catch (error: any) {
-      return error.message; // Failure, return error message to prompt
-    }
-  };
-
-  const handleResetKey = () => {
-    clearApiKey();
-    setAppStatus('needs_key');
-    setMessagesByAgent({});
-  };
-  
   const handleStopGeneration = () => setIsLoading(false);
   const handleToggleListening = () => setIsListening(prev => !prev);
   const handleStopSpeaking = () => setIsSpeaking(false);
+  const handleResetKey = () => {
+      clearApiKey();
+      window.location.reload();
+  };
+
+  const handleSetKey = async (apiKey: string) => {
+      await setAndInitializeAi(apiKey);
+      setAppStatus('ready');
+  };
 
   const renderActiveView = () => {
     switch (activeView) {
@@ -153,11 +137,7 @@ const App: React.FC = () => {
   }
   
   if (appStatus === 'needs_key') {
-     return <ApiKeyPrompt onKeySubmit={handleKeySubmit} />;
-  }
-  
-  if (appStatus === 'error') {
-     return <ConfigurationErrorScreen errorMessage={initError} />;
+     return <ApiKeyPrompt onSetKey={handleSetKey} />;
   }
 
   if (!isLoggedIn) {

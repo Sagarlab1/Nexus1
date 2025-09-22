@@ -2,16 +2,32 @@ import { GoogleGenAI, Chat, GenerateContentResponse } from "@google/genai";
 import type { Agent } from '../types';
 
 let ai: GoogleGenAI | null = null;
-let isInitialized = false;
 const chatSessions = new Map<string, Chat>();
 const API_KEY_STORAGE_KEY = 'nexus_sapiens_api_key';
 
 /**
- * Initializes the AI service by checking localStorage and then environment variables.
- * @returns {Promise<boolean>} True if initialization is successful, false if a key is needed.
+ * Validates an API key by attempting to create a GoogleGenAI instance.
+ * @param apiKey The API key to validate.
+ * @returns True if the key is structurally valid, false otherwise.
+ */
+async function validateApiKey(apiKey: string): Promise<boolean> {
+  if (!apiKey || apiKey.trim() === '') return false;
+  try {
+    // This is a lightweight check. The real validation happens on the first API call.
+    new GoogleGenAI({ apiKey });
+    return true;
+  } catch (error) {
+    console.error("API Key validation failed:", error);
+    return false;
+  }
+}
+
+/**
+ * Attempts to initialize the AI service from localStorage or environment variables.
+ * @returns {Promise<boolean>} True if initialization was successful, false otherwise.
  */
 export async function initializeAi(): Promise<boolean> {
-  if (isInitialized && ai) return true;
+  if (ai) return true;
 
   let apiKey = localStorage.getItem(API_KEY_STORAGE_KEY);
 
@@ -20,57 +36,38 @@ export async function initializeAi(): Promise<boolean> {
   }
 
   if (apiKey) {
-    try {
+    const isValid = await validateApiKey(apiKey);
+    if (isValid) {
       ai = new GoogleGenAI({ apiKey });
-      isInitialized = true;
-      // Cache the key in localStorage if it came from env var
-      if (!localStorage.getItem(API_KEY_STORAGE_KEY)) {
-        localStorage.setItem(API_KEY_STORAGE_KEY, apiKey);
-      }
-      chatSessions.clear();
-      console.log("AI service initialized from stored/env key.");
+      localStorage.setItem(API_KEY_STORAGE_KEY, apiKey);
+      console.log("AI service initialized successfully.");
       return true;
-    } catch (error) {
-        console.error("Failed to initialize with stored/env key", error);
-        // Clear bad key
-        localStorage.removeItem(API_KEY_STORAGE_KEY);
-        ai = null;
-        isInitialized = false;
-        return false;
     }
   }
-
-  return false; // No key found, prompt user.
+  
+  clearApiKey(); // Ensure clean state if initialization fails
+  return false;
 }
 
 /**
- * Sets and validates a user-provided API key.
- * @param {string} apiKey The API key provided by the user.
+ * Sets a new API key, initializes the AI service with it, and stores it.
+ * @param apiKey The user-provided API key.
  * @throws {Error} If the API key is invalid.
  */
 export async function setAndInitializeAi(apiKey: string): Promise<void> {
   if (!apiKey || apiKey.trim() === '') {
     throw new Error("La clave de API no puede estar vacía.");
   }
-
-  try {
-    // Validate the key by making a lightweight test call.
-    const tempAi = new GoogleGenAI({ apiKey });
-    const tempChat = tempAi.chats.create({ model: 'gemini-2.5-flash' });
-    await tempChat.sendMessage({ message: "hello" }); // Validation call
-    
-    // If validation succeeds, set the main AI instance
-    ai = tempAi;
-    localStorage.setItem(API_KEY_STORAGE_KEY, apiKey);
-    isInitialized = true;
-    chatSessions.clear();
-    console.log("AI service initialized with user-provided key.");
-  } catch (error: any) {
-    console.error("Failed to initialize with provided API key:", error);
-    ai = null;
-    isInitialized = false;
-    throw new Error("La clave de API proporcionada no es válida. Por favor, verifícala e intenta de nuevo.");
+  
+  const isValid = await validateApiKey(apiKey);
+  if (!isValid) {
+      throw new Error("La clave de API proporcionada no es válida.");
   }
+
+  ai = new GoogleGenAI({ apiKey });
+  localStorage.setItem(API_KEY_STORAGE_KEY, apiKey);
+  chatSessions.clear(); // Reset chat sessions with the new key
+  console.log("AI service set and initialized with new key.");
 }
 
 /**
@@ -79,13 +76,21 @@ export async function setAndInitializeAi(apiKey: string): Promise<void> {
 export function clearApiKey(): void {
   localStorage.removeItem(API_KEY_STORAGE_KEY);
   ai = null;
-  isInitialized = false;
   chatSessions.clear();
-  console.log("API Key cleared.");
+  console.log("API Key and AI service cleared.");
 }
 
+/**
+ * Retrieves the currently stored API key.
+ * @returns The API key or null if not set.
+ */
+export function getApiKey(): string | null {
+    return localStorage.getItem(API_KEY_STORAGE_KEY);
+}
+
+
 function getChat(agent: Agent): Chat {
-  if (!ai || !isInitialized) {
+  if (!ai) {
     throw new Error("El cliente de IA no ha sido inicializado.");
   }
 
@@ -108,8 +113,8 @@ export async function generateResponse(
   agent: Agent,
   message: string
 ): Promise<string> {
-   if (!ai || !isInitialized) {
-    return "Error: El servicio de IA no está inicializado. Por favor, configura tu API Key.";
+   if (!ai) {
+    return "Error: El servicio de IA no está inicializado. Por favor, configura tu clave de API.";
   }
   
   const chat = getChat(agent);
@@ -120,7 +125,10 @@ export async function generateResponse(
   } catch (error: any) {
     console.error("Error generating response from Gemini:", error);
      if (error.message.includes('API key not valid')) {
-        return "Error: La clave de API configurada no es válida. Por favor, cámbiala usando el botón en el panel izquierdo.";
+        clearApiKey();
+        // Reloading the page will force the user to re-enter the key.
+        setTimeout(() => window.location.reload(), 1000); 
+        return "Error: Tu clave de API no es válida o ha expirado. La página se recargará para que puedas introducir una nueva.";
     }
     return `Lo siento, ocurrió un error al contactar al agente: ${error.message}`;
   }

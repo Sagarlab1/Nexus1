@@ -1,5 +1,3 @@
-
-
 import React from 'react';
 import NexusLogo from './icons/NexusLogo';
 import StarIcon from './icons/StarIcon';
@@ -103,10 +101,10 @@ const UserRankPanel: React.FC<UserRankPanelProps> = ({ rank, activeView, onNavig
           </button>
           <button 
             onClick={onResetKey}
-            className="w-full flex items-center justify-center gap-2 text-gray-400 p-3 rounded-lg bg-gray-800/50 hover:bg-gray-700/70 hover:text-white transition-colors"
+            className="w-full flex items-center justify-center gap-2 text-gray-400 p-3 rounded-lg bg-gray-800/50 hover:bg-gray-700/70 transition-colors"
           >
             <LogOutIcon className="w-5 h-5" />
-            <span className="font-semibold">Cambiar API Key</span>
+            <span className="font-semibold text-sm">Cambiar API Key</span>
           </button>
       </div>
     </div>
