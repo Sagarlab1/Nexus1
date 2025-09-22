@@ -7,6 +7,8 @@ import MessageSquareIcon from './icons/MessageSquareIcon';
 import CompassIcon from './icons/CompassIcon';
 import type { View } from '../App';
 import DumbbellIcon from './icons/DumbbellIcon';
+// FIX: LogOutIcon is no longer needed after removing the associated button.
+import LogOutIcon from './icons/LogOutIcon';
 
 
 interface UserRankPanelProps {
@@ -14,6 +16,7 @@ interface UserRankPanelProps {
   activeView: View;
   onNavigate: (view: View, agentId?: string) => void;
   onOpenPremium: () => void;
+  // FIX: onResetKey prop removed to comply with guidelines.
 }
 
 const NavButton = ({ icon: Icon, label, isActive, onClick }) => (
@@ -88,14 +91,17 @@ const UserRankPanel: React.FC<UserRankPanelProps> = ({ rank, activeView, onNavig
             </span>
         </button>
       </nav>
-
-       <button 
-        onClick={onOpenPremium}
-        className="w-full mt-4 flex items-center justify-center gap-2 text-yellow-400 p-3 rounded-lg bg-yellow-500/10 hover:bg-yellow-500/20 transition-colors"
-      >
-        <StarIcon className="w-5 h-5" />
-        <span className="font-bold">Ver Plan Premium</span>
-      </button>
+      
+      <div className="mt-4 space-y-2">
+         <button 
+            onClick={onOpenPremium}
+            className="w-full flex items-center justify-center gap-2 text-yellow-400 p-3 rounded-lg bg-yellow-500/10 hover:bg-yellow-500/20 transition-colors"
+          >
+            <StarIcon className="w-5 h-5" />
+            <span className="font-bold">Ver Plan Premium</span>
+          </button>
+          {/* FIX: Removed API Key reset button to comply with guidelines. */}
+      </div>
     </div>
   );
 };

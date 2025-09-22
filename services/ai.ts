@@ -5,31 +5,33 @@ let ai: GoogleGenAI | null = null;
 const chatSessions = new Map<string, Chat>();
 
 /**
- * Initializes the GoogleGenAI client using the API_KEY from environment variables.
- * Throws an error if the API key is not found or invalid.
+ * Initializes the GoogleGenAI client.
+ * The API key must be provided via the process.env.API_KEY environment variable.
  */
 export async function initializeAi(): Promise<void> {
-  console.log("Intentando inicializar el servicio de IA desde variables de entorno...");
-
+  // FIX: Per guidelines, API key must come exclusively from process.env.API_KEY.
+  // Removed logic for localStorage, environment fallbacks, and user-provided keys.
   const apiKey = process.env.API_KEY;
 
   if (!apiKey || typeof apiKey !== 'string' || apiKey.trim() === '') {
-    console.error("Error: La variable de entorno API_KEY no está configurada o está vacía.");
-    throw new Error("La variable de entorno API_KEY no está configurada. Por favor, configúrala en tu entorno de despliegue.");
+    console.error("API_KEY environment variable not set or empty.");
+    // App.tsx will handle this error to show a message.
+    throw new Error("NO_API_KEY");
   }
-  
-  console.log("Clave de API encontrada en variables de entorno. Inicializando GoogleGenAI...");
 
   try {
+    // FIX: Per guidelines, apiKey must be a named parameter.
     ai = new GoogleGenAI({ apiKey });
-    // A test call could be made here to validate the key, but for now we assume it's valid if it initializes
-    chatSessions.clear(); // Clear any previous chat sessions if re-initializing
+    chatSessions.clear();
     console.log("GoogleGenAI inicializado exitosamente.");
   } catch (e: any) {
-    console.error("Fallo al inicializar GoogleGenAI:", e.message);
-    throw new Error(`La API_KEY proporcionada parece ser inválida. Error: ${e.message}`);
+    console.error("Fallo al inicializar GoogleGenAI con la clave proporcionada:", e.message);
+    throw new Error(`La API Key proporcionada no es válida. Por favor, revísala. Error: ${e.message}`);
   }
 }
+
+// FIX: Removed setApiKey and clearApiKey functions as per guidelines disallowing user-managed keys.
+
 
 /**
  * Retrieves an existing chat session for a given agent or creates a new one.
@@ -45,6 +47,7 @@ function getChat(agent: Agent): Chat {
   }
 
   const chat = ai.chats.create({
+    // FIX: Per guidelines, use a supported model. 'gemini-2.5-flash' is correct.
     model: 'gemini-2.5-flash',
     config: {
       systemInstruction: agent.prompt,
@@ -67,5 +70,6 @@ export async function generateResponse(
   }
   const chat = getChat(agent);
   const response: GenerateContentResponse = await chat.sendMessage({ message });
+  // FIX: Per guidelines, response.text is the correct way to get the text.
   return response.text;
 }
