@@ -14,6 +14,8 @@ import FloatingChatButton from './components/FloatingChatButton.tsx';
 import { AGENTS } from './constants.tsx';
 import type { View, Agent, Message } from './types.ts';
 import { initializeAi, setAndValidateApiKey, clearApiKey, generateResponse, isAiReady } from './services/ai.ts';
+import NexusLogo from './components/icons/NexusLogo.tsx';
+import MenuIcon from './components/icons/MenuIcon.tsx';
 
 const App: React.FC = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -28,6 +30,8 @@ const App: React.FC = () => {
   
   const [showPremiumModal, setShowPremiumModal] = useState(false);
   const [showChatModal, setShowChatModal] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
 
   useEffect(() => {
     const aiReady = initializeAi();
@@ -44,12 +48,6 @@ const App: React.FC = () => {
     setIsAiConfigured(true);
     setActiveView('nexus_zero_course');
   };
-
-  const handleResetKey = () => {
-    clearApiKey();
-    setIsAiConfigured(false);
-    setActiveView('api_key_setup');
-  };
   
   const initChat = (agent: Agent) => {
       setMessages([
@@ -57,6 +55,7 @@ const App: React.FC = () => {
       ]);
   };
 
+  // --- Handlers that also close the mobile sidebar ---
   const handleNavigate = (view: View, agentId?: string) => {
     setActiveView(view);
     let targetAgent = activeAgent;
@@ -70,8 +69,21 @@ const App: React.FC = () => {
     if (view === 'chat' && (!messages.length || agentId)) {
       initChat(targetAgent);
     }
+    setIsSidebarOpen(false);
   };
   
+  const handleResetKey = () => {
+    clearApiKey();
+    setIsAiConfigured(false);
+    setActiveView('api_key_setup');
+    setIsSidebarOpen(false);
+  };
+
+  const handleOpenPremium = () => {
+    setShowPremiumModal(true);
+    setIsSidebarOpen(false);
+  }
+
   const handleSelectAgent = (agent: Agent) => {
     setActiveAgent(agent);
     initChat(agent);
@@ -147,36 +159,64 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="bg-gray-900 text-white font-sans h-screen flex flex-col p-0 md:p-4 gap-4 bg-grid-pattern overflow-hidden">
-      <main className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-4 h-full md:h-[calc(100vh-2rem)]">
-        <aside className="hidden lg:block lg:col-span-3 h-full">
+    <div className="bg-gray-900 text-white font-sans h-screen flex flex-col bg-grid-pattern overflow-hidden">
+      {/* Mobile Header */}
+      <header className="lg:hidden flex justify-between items-center p-4 bg-gray-900/80 backdrop-blur-sm border-b border-gray-700/50 flex-shrink-0">
+        <div className="flex items-center gap-3">
+          <NexusLogo className="w-8 h-8 text-cyan-400" />
+          <h1 className="text-xl font-bold">Nexus Sapiens</h1>
+        </div>
+        <button onClick={() => setIsSidebarOpen(true)} className="p-1 rounded-md hover:bg-gray-700">
+          <MenuIcon className="w-6 h-6" />
+        </button>
+      </header>
+
+      <div className="flex-1 flex p-0 md:p-4 gap-4 overflow-hidden">
+        {/* Desktop Sidebar */}
+        <aside className="hidden lg:block lg:w-1/4 h-full">
             <UserRankPanel 
                 rank="Sapiens Inicial" 
                 activeView={activeView}
                 onNavigate={handleNavigate}
-                onOpenPremium={() => setShowPremiumModal(true)}
+                onOpenPremium={handleOpenPremium}
                 isAiConfigured={isAiConfigured}
                 onResetKey={handleResetKey}
             />
         </aside>
 
-        <section className="col-span-1 lg:col-span-6 h-full min-h-0">
-            {renderContent()}
-        </section>
+        {/* Main Area (Content + Right Panel) */}
+        <main className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-4 h-full min-w-0 p-4 pt-2 md:p-0">
+          <section className="col-span-1 lg:col-span-2 h-full min-h-0">
+              {renderContent()}
+          </section>
 
-        <aside className="hidden lg:block lg:col-span-3 h-full">
-            <AgentPanel
-                agents={AGENTS}
-                activeAgent={activeAgent}
-                onSelectAgent={handleSelectAgent}
-            />
-        </aside>
-      </main>
+          <aside className="hidden lg:block lg:col-span-1 h-full">
+              <AgentPanel
+                  agents={AGENTS}
+                  activeAgent={activeAgent}
+                  onSelectAgent={handleSelectAgent}
+              />
+          </aside>
+        </main>
+      </div>
+
+       {/* Mobile Sidebar (Drawer) */}
+       <div className={`fixed inset-0 z-50 flex lg:hidden transition-opacity duration-300 ${isSidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+        <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setIsSidebarOpen(false)}></div>
+        <div className={`relative bg-gray-900 h-full w-4/5 max-w-xs shadow-2xl transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+          <UserRankPanel 
+            rank="Sapiens Inicial" 
+            activeView={activeView}
+            onNavigate={handleNavigate}
+            onOpenPremium={handleOpenPremium}
+            isAiConfigured={isAiConfigured}
+            onResetKey={handleResetKey}
+          />
+        </div>
+      </div>
       
       {showPremiumModal && <PremiumModal onClose={() => setShowPremiumModal(false)} />}
-
       {activeView !== 'chat' && <FloatingChatButton onClick={() => setShowChatModal(true)} />}
-
       {showChatModal && (
         <ChatModal 
           onClose={() => setShowChatModal(false)}
