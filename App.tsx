@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import UserRankPanel from './components/UserRankPanel.tsx';
 import AgentPanel from './components/AgentPanel.tsx';
@@ -6,7 +7,6 @@ import NexusZeroPage from './components/NexusZeroPage.tsx';
 import ProgramsPage from './components/ProgramsPage.tsx';
 import LatinoChallengesPage from './components/LatinoChallengesPage.tsx';
 import CognitiveGymPage from './components/CognitiveGymPage.tsx';
-import ApiKeyPrompt from './components/ApiKeyPrompt.tsx';
 import PremiumModal from './components/PremiumModal.tsx';
 import ChatModal from './components/ChatModal.tsx';
 import FloatingChatButton from './components/FloatingChatButton.tsx';
@@ -16,16 +16,11 @@ import EntrepreneurshipCoursePage from './components/EntrepreneurshipCoursePage.
 import GenerativeAiCoursePage from './components/GenerativeAiCoursePage.tsx';
 import { AGENTS } from './constants.tsx';
 import type { View, Agent, Message } from './types.ts';
-import { generateResponse, setApiKey, validateApiKey } from './services/ai.ts';
+import { generateResponse } from './services/ai.ts';
 import NexusLogo from './components/icons/NexusLogo.tsx';
 import MenuIcon from './components/icons/MenuIcon.tsx';
 
-const API_KEY_STORAGE_KEY = 'NEXUS_SAPIENS_API_KEY';
-
 const App: React.FC = () => {
-  const [apiKey, setLocalApiKey] = useState<string | null>(null);
-  const [isKeyChecked, setIsKeyChecked] = useState(false);
-  
   const defaultAgent = AGENTS.find(a => a.id === 'critical_thinking') || AGENTS[0];
   
   const [activeView, setActiveView] = useState<View>('nexus_zero_course');
@@ -38,15 +33,6 @@ const App: React.FC = () => {
   const [showChatModal, setShowChatModal] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  useEffect(() => {
-    const key = process.env.API_KEY || localStorage.getItem(API_KEY_STORAGE_KEY);
-    if (key) {
-      setApiKey(key);
-      setLocalApiKey(key);
-    }
-    setIsKeyChecked(true);
-  }, []);
-
   const initChat = (agent: Agent) => {
       setMessages([
           { id: `welcome-${agent.id}-${Date.now()}`, sender: 'agent', text: `¡Hola! Soy ${agent.name}. ¿Cómo puedo asistirte?` }
@@ -55,22 +41,9 @@ const App: React.FC = () => {
   
   // Initialize chat when the main app is ready to be shown
   useEffect(() => {
-    if (apiKey) {
-      initChat(defaultAgent);
-    }
-  }, [apiKey]);
+    initChat(defaultAgent);
+  }, []);
   
-  const handleSetKey = async (newKey: string) => {
-    const isValid = await validateApiKey(newKey);
-    if (isValid) {
-      localStorage.setItem(API_KEY_STORAGE_KEY, newKey);
-      setApiKey(newKey);
-      setLocalApiKey(newKey);
-    } else {
-      throw new Error("La clave API no es válida o ha ocurrido un error al verificarla.");
-    }
-  };
-
   const handleNavigate = (view: View, agentId?: string) => {
     setActiveView(view);
     let targetAgent = activeAgent;
@@ -139,15 +112,6 @@ const App: React.FC = () => {
         return <NexusZeroPage onNavigateToPrograms={() => setActiveView('programs')} />;
     }
   };
-  
-  if (!isKeyChecked) {
-    // Render a blank screen or a loading spinner while checking for the key
-    return null;
-  }
-
-  if (!apiKey) {
-    return <ApiKeyPrompt onSetKey={handleSetKey} />;
-  }
 
   return (
     <div className="bg-gray-900 text-white font-sans h-screen flex flex-col bg-grid-pattern overflow-hidden">
