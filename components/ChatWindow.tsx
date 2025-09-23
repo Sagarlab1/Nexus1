@@ -9,6 +9,7 @@ import SpeakerIcon from './icons/SpeakerIcon.tsx';
 import SpeakerOffIcon from './icons/SpeakerOffIcon.tsx';
 import MicrophoneIcon from './icons/MicrophoneIcon.tsx';
 import StopIcon from './icons/StopIcon.tsx';
+import XIcon from './icons/XIcon.tsx';
 
 
 interface ChatWindowProps {
@@ -16,6 +17,7 @@ interface ChatWindowProps {
   activeAgent: Agent;
   onSendMessage: (message: string) => void;
   isSending: boolean;
+  onClose?: () => void;
 }
 
 const agentColorStyles: Record<AgentColor, { bg: string; text: string; border: string }> = {
@@ -62,16 +64,6 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, agent, onToggleSpeech,
       </div>
       <div className={`bg-gray-800 rounded-lg p-3 max-w-lg group relative`}>
         <p className="text-gray-200 whitespace-pre-wrap">{message.text}</p>
-        {message.action && (
-          <div className="mt-3 pt-3 border-t border-gray-700/50">
-            <button
-              onClick={message.action.onClick}
-              className="bg-cyan-500 hover:bg-cyan-400 text-white font-bold py-2 px-4 rounded-lg transition-colors w-full text-sm"
-            >
-              {message.action.text}
-            </button>
-          </div>
-        )}
         <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
             <button
                 onClick={() => onToggleSpeech(message)}
@@ -93,7 +85,7 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, agent, onToggleSpeech,
   );
 };
 
-const ChatWindow: React.FC<ChatWindowProps> = ({ messages, activeAgent, onSendMessage, isSending }) => {
+const ChatWindow: React.FC<ChatWindowProps> = ({ messages, activeAgent, onSendMessage, isSending, onClose }) => {
   const [inputMessage, setInputMessage] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -201,14 +193,25 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ messages, activeAgent, onSendMe
 
   return (
     <div className="bg-gray-900/50 backdrop-blur-sm border-gray-700/50 rounded-lg shadow-lg shadow-black/20 flex flex-col h-full">
-      <header className="p-4 border-b border-gray-700/50 flex items-center">
-        <div className={`w-10 h-10 rounded-full ${agentColorStyles[activeAgent.color].bg} flex items-center justify-center mr-4 border ${agentColorStyles[activeAgent.color].border}`}>
-          <activeAgent.icon className={`w-6 h-6 ${agentColorStyles[activeAgent.color].text}`} />
+      <header className="p-4 border-b border-gray-700/50 flex items-center justify-between">
+        <div className="flex items-center">
+            <div className={`w-10 h-10 rounded-full ${agentColorStyles[activeAgent.color].bg} flex items-center justify-center mr-4 border ${agentColorStyles[activeAgent.color].border}`}>
+              <activeAgent.icon className={`w-6 h-6 ${agentColorStyles[activeAgent.color].text}`} />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-white">{activeAgent.name}</h2>
+              <p className="text-sm text-gray-400">{activeAgent.description}</p>
+            </div>
         </div>
-        <div>
-          <h2 className="text-lg font-bold text-white">{activeAgent.name}</h2>
-          <p className="text-sm text-gray-400">{activeAgent.description}</p>
-        </div>
+        {onClose && (
+            <button
+                onClick={onClose}
+                className="text-gray-500 hover:text-white transition-colors"
+                aria-label="Cerrar chat"
+            >
+                <XIcon className="w-6 h-6" />
+            </button>
+        )}
       </header>
 
       <div className="flex-1 p-6 overflow-y-auto space-y-6">

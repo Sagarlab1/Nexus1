@@ -68,16 +68,6 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, agent, onToggleSpeech,
       </div>
       <div className={`bg-gray-800 rounded-lg p-3 max-w-lg group relative`}>
         <p className="text-gray-200 whitespace-pre-wrap">{message.text}</p>
-        {message.action && (
-          <div className="mt-3 pt-3 border-t border-gray-700/50">
-            <button
-              onClick={message.action.onClick}
-              className="bg-cyan-500 hover:bg-cyan-400 text-white font-bold py-2 px-4 rounded-lg transition-colors w-full text-sm"
-            >
-              {message.action.text}
-            </button>
-          </div>
-        )}
         <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
             <button
                 onClick={() => onToggleSpeech(message)}

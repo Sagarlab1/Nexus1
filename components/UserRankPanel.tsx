@@ -14,8 +14,6 @@ interface UserRankPanelProps {
   activeView: View;
   onNavigate: (view: View, agentId?: string) => void;
   onOpenPremium: () => void;
-  isAiConfigured: boolean;
-  onResetKey: () => void;
 }
 
 const NavButton = ({ icon: Icon, label, isActive, onClick }) => (
@@ -33,7 +31,7 @@ const NavButton = ({ icon: Icon, label, isActive, onClick }) => (
 );
 
 
-const UserRankPanel: React.FC<UserRankPanelProps> = ({ rank, activeView, onNavigate, onOpenPremium, isAiConfigured, onResetKey }) => {
+const UserRankPanel: React.FC<UserRankPanelProps> = ({ rank, activeView, onNavigate, onOpenPremium }) => {
   return (
     <div className="bg-gray-900/50 backdrop-blur-sm border border-gray-700/50 rounded-lg p-6 shadow-lg shadow-black/20 text-white flex flex-col h-full">
         <div className="w-full flex items-center text-left mb-4 group">
@@ -98,17 +96,6 @@ const UserRankPanel: React.FC<UserRankPanelProps> = ({ rank, activeView, onNavig
           >
             <StarIcon className="w-5 h-5" />
             <span className="font-bold">Ver Plan Premium</span>
-          </button>
-          <button 
-            onClick={onResetKey}
-            className={`w-full flex items-center justify-center gap-2 p-3 rounded-lg transition-colors ${
-              isAiConfigured
-                ? 'text-gray-400 bg-gray-800/50 hover:bg-gray-700/70'
-                : 'text-yellow-300 bg-yellow-500/10 hover:bg-yellow-500/20 animate-pulse'
-            }`}
-           >
-            <LogOutIcon className="w-5 h-5" />
-            <span className="font-bold">{isAiConfigured ? 'Cambiar API Key' : 'Configurar API Key'}</span>
           </button>
       </div>
     </div>

@@ -7,7 +7,6 @@ import ProgramsPage from './components/ProgramsPage.tsx';
 import LatinoChallengesPage from './components/LatinoChallengesPage.tsx';
 import CognitiveGymPage from './components/CognitiveGymPage.tsx';
 import LoginScreen from './components/LoginScreen.tsx';
-import ApiKeyPrompt from './components/ApiKeyPrompt.tsx';
 import PremiumModal from './components/PremiumModal.tsx';
 import ChatModal from './components/ChatModal.tsx';
 import FloatingChatButton from './components/FloatingChatButton.tsx';
@@ -17,19 +16,21 @@ import EntrepreneurshipCoursePage from './components/EntrepreneurshipCoursePage.
 import GenerativeAiCoursePage from './components/GenerativeAiCoursePage.tsx';
 import { AGENTS } from './constants.tsx';
 import type { View, Agent, Message } from './types.ts';
-import { initializeAi, setAndValidateApiKey, clearApiKey, generateResponse, isAiReady } from './services/ai.ts';
+import { generateResponse } from './services/ai.ts';
 import NexusLogo from './components/icons/NexusLogo.tsx';
 import MenuIcon from './components/icons/MenuIcon.tsx';
 
 const App: React.FC = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [isAiConfigured, setIsAiConfigured] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
   
-  const [activeView, setActiveView] = useState<View>('nexus_zero_course');
-  const [activeAgent, setActiveAgent] = useState<Agent>(AGENTS.find(a => a.id === 'entrepreneurship') || AGENTS[0]);
+  const defaultAgent = AGENTS.find(a => a.id === 'critical_thinking') || AGENTS[0];
   
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [activeView, setActiveView] = useState<View>('chat');
+  const [activeAgent, setActiveAgent] = useState<Agent>(defaultAgent);
+  
+  const [messages, setMessages] = useState<Message[]>([
+    { id: `welcome-${defaultAgent.id}-${Date.now()}`, sender: 'agent', text: `¡Hola! Soy ${defaultAgent.name}. ¿Cómo puedo asistirte hoy?` }
+  ]);
   const [isSending, setIsSending] = useState(false);
   
   const [showPremiumModal, setShowPremiumModal] = useState(false);
@@ -37,20 +38,8 @@ const App: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
 
-  useEffect(() => {
-    const aiReady = initializeAi();
-    setIsAiConfigured(aiReady);
-    setIsLoading(false);
-  }, []);
-
   const handleLogin = () => {
     setIsLoggedIn(true);
-  };
-
-  const handleSetKey = async (apiKey: string) => {
-    await setAndValidateApiKey(apiKey);
-    setIsAiConfigured(true);
-    setActiveView('nexus_zero_course');
   };
   
   const initChat = (agent: Agent) => {
@@ -76,13 +65,6 @@ const App: React.FC = () => {
     }
     setIsSidebarOpen(false);
   };
-  
-  const handleResetKey = () => {
-    clearApiKey();
-    setIsAiConfigured(false);
-    setActiveView('api_key_setup');
-    setIsSidebarOpen(false);
-  };
 
   const handleOpenPremium = () => {
     setShowPremiumModal(true);
@@ -98,50 +80,24 @@ const App: React.FC = () => {
     const userMessage: Message = { id: Date.now(), sender: 'user', text: message };
     setMessages(prev => [...prev, userMessage]);
     
-    if (!isAiReady()) {
-      setIsSending(true);
-      setTimeout(() => {
-        const agentMessage: Message = {
-          id: Date.now() + 1,
-          sender: 'agent',
-          text: 'Modo de demostración: La funcionalidad de chat está desactivada.',
-          action: {
-            text: 'Configurar API Key',
-            onClick: () => {
-              setShowChatModal(false);
-              handleNavigate('api_key_setup');
-            },
-          }
-        };
-        setMessages(prev => [...prev, agentMessage]);
-        setIsSending(false);
-      }, 500);
-      return;
-    }
-
     setIsSending(true);
     try {
       const responseText = await generateResponse(activeAgent, message);
       const agentMessage: Message = { id: Date.now() + 1, sender: 'agent', text: responseText };
       setMessages(prev => [...prev, agentMessage]);
     } catch (error: any) {
-      const errorMessage: Message = { id: Date.now() + 1, sender: 'agent', text: `Error: ${error.message}` };
+      const errorMessageText = error.message || "Ocurrió un error desconocido al comunicarse con el agente.";
+      const errorMessage: Message = { id: Date.now() + 1, sender: 'agent', text: `Error: ${errorMessageText}` };
       setMessages(prev => [...prev, errorMessage]);
-      if (error.message.includes('reconfiguración')) {
-        setTimeout(() => window.location.reload(), 3000);
-      }
     } finally {
       setIsSending(false);
     }
   };
   
   const renderContent = () => {
-    if (activeView === 'api_key_setup') {
-      return <ApiKeyPrompt onSetKey={handleSetKey} />;
-    }
     switch (activeView) {
       case 'chat':
-        return <ChatWindow messages={messages} activeAgent={activeAgent} onSendMessage={handleSendMessage} isSending={isSending} />;
+        return <ChatWindow messages={messages} activeAgent={activeAgent} onSendMessage={handleSendMessage} isSending={isSending} onClose={() => handleNavigate('nexus_zero_course')} />;
       case 'nexus_zero_course':
         return <NexusZeroPage onNavigateToPrograms={() => setActiveView('programs')} />;
       case 'programs':
@@ -159,13 +115,9 @@ const App: React.FC = () => {
       case 'gen_ai_course':
         return <GenerativeAiCoursePage onBack={() => setActiveView('programs')} />;
       default:
-        return <NexusZeroPage onNavigateToPrograms={() => setActiveView('programs')} />;
+        return <ChatWindow messages={messages} activeAgent={activeAgent} onSendMessage={handleSendMessage} isSending={isSending} onClose={() => handleNavigate('nexus_zero_course')} />;
     }
   };
-  
-  if (isLoading) {
-    return <div className="bg-gray-900 w-full h-screen"></div>;
-  }
   
   if (!isLoggedIn) {
     return <LoginScreen onLogin={handleLogin} />;
@@ -192,8 +144,6 @@ const App: React.FC = () => {
                 activeView={activeView}
                 onNavigate={handleNavigate}
                 onOpenPremium={handleOpenPremium}
-                isAiConfigured={isAiConfigured}
-                onResetKey={handleResetKey}
             />
         </aside>
 
@@ -222,15 +172,13 @@ const App: React.FC = () => {
             activeView={activeView}
             onNavigate={handleNavigate}
             onOpenPremium={handleOpenPremium}
-            isAiConfigured={isAiConfigured}
-            onResetKey={handleResetKey}
           />
         </div>
       </div>
       
       {showPremiumModal && <PremiumModal onClose={() => setShowPremiumModal(false)} />}
       
-      {activeView !== 'chat' && activeView !== 'api_key_setup' && !showChatModal && (
+      {activeView !== 'chat' && !showChatModal && (
         <FloatingChatButton 
             onClick={() => {
                 if (!messages.length) initChat(activeAgent);

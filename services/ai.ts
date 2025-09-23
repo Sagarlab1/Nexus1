@@ -1,88 +1,19 @@
 import { GoogleGenAI, Chat, GenerateContentResponse } from "@google/genai";
 import type { Agent } from '../types.ts';
 
-let ai: GoogleGenAI | null = null;
+// La instancia de IA se crea una sola vez utilizando la variable de entorno.
+// Según las instrucciones, se asume que process.env.API_KEY está disponible y es válido.
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+
 const chatSessions = new Map<string, Chat>();
-const API_KEY_STORAGE_KEY = 'nexus-sapiens-api-key';
 
 /**
- * Checks if the AI service is configured and ready.
+ * Obtiene o crea una sesión de chat para un agente específico.
+ * Esto preserva el historial de conversación con el modelo de IA.
+ * @param agent El agente para el que se obtendrá la sesión de chat.
+ * @returns Una instancia de Chat.
  */
-export const isAiReady = (): boolean => !!ai;
-
-/**
- * Tries to initialize the AI service from localStorage.
- * Returns true if successful, false otherwise.
- */
-export function initializeAi(): boolean {
-  if (ai) return true;
-
-  try {
-    const storedKey = localStorage.getItem(API_KEY_STORAGE_KEY);
-    if (storedKey) {
-      ai = new GoogleGenAI({ apiKey: storedKey });
-      return true;
-    }
-  } catch (error) {
-    // Fails silently if localStorage is not accessible
-  }
-  
-  return false;
-}
-
-/**
- * Sets and validates a new API key by making a test request.
- * Throws an error if the key is invalid.
- */
-export async function setAndValidateApiKey(apiKey: string): Promise<void> {
-  if (!apiKey || apiKey.trim() === '') {
-    throw new Error("La clave de API no puede estar vacía.");
-  }
-  const tempAi = new GoogleGenAI({ apiKey });
-  try {
-    // A simple, low-cost request to validate the key
-    await tempAi.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: 'hello',
-        config: { thinkingConfig: { thinkingBudget: 0 } }
-    });
-    
-    // If validation succeeds, set the global instance and save to localStorage
-    ai = tempAi;
-    try {
-      localStorage.setItem(API_KEY_STORAGE_KEY, apiKey);
-    } catch (error) {
-      // Fails silently if localStorage is not accessible
-    }
-    chatSessions.clear(); // Clear old chat sessions with the previous key
-  } catch (error: any) {
-    console.error("Error de validación de API key:", error);
-    // Provide a more user-friendly error message
-    if (error.message && (error.message.includes('API key not valid') || error.message.includes('permission'))) {
-        throw new Error("La clave de API proporcionada no es válida o no tiene los permisos necesarios.");
-    }
-    throw new Error("No se pudo verificar la clave de API. Verifica tu conexión a internet y que la clave sea correcta.");
-  }
-}
-
-/**
- * Clears the stored API key and resets the AI service.
- */
-export function clearApiKey(): void {
-    try {
-      localStorage.removeItem(API_KEY_STORAGE_KEY);
-    } catch (error) {
-       // Fails silently if localStorage is not accessible
-    }
-    ai = null;
-    chatSessions.clear();
-}
-
 function getChat(agent: Agent): Chat {
-  if (!ai) {
-    throw new Error("El servicio de IA no está inicializado. Por favor, configura tu clave de API.");
-  }
-
   if (chatSessions.has(agent.id)) {
     return chatSessions.get(agent.id)!;
   }
@@ -98,6 +29,12 @@ function getChat(agent: Agent): Chat {
   return chat;
 }
 
+/**
+ * Genera una respuesta del agente especificado para un mensaje dado.
+ * @param agent El agente a utilizar para generar la respuesta.
+ * @param message El mensaje del usuario.
+ * @returns La respuesta de texto del agente.
+ */
 export async function generateResponse(
   agent: Agent,
   message: string
@@ -109,11 +46,8 @@ export async function generateResponse(
     return response.text;
   } catch (error: any) {
     console.error("Error al generar respuesta desde Gemini:", error);
-    if (error.message.includes('API key not valid')) {
-        clearApiKey();
-        // Force a reload to show the API key prompt again
-        throw new Error("La clave de API ha dejado de ser válida. Se requiere reconfiguración.");
-    }
-    throw new Error("Hubo un problema al comunicarse con el agente de IA.");
+    // El error será capturado en App.tsx y mostrado al usuario.
+    // El mensaje del SDK debería ser lo suficientemente informativo.
+    throw error;
   }
 }
