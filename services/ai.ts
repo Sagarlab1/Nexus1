@@ -21,11 +21,10 @@ export function initializeAi(): boolean {
     const storedKey = localStorage.getItem(API_KEY_STORAGE_KEY);
     if (storedKey) {
       ai = new GoogleGenAI({ apiKey: storedKey });
-      console.log("Servicio de IA inicializado desde localStorage.");
       return true;
     }
   } catch (error) {
-    console.warn("No se pudo acceder a localStorage. La API Key no se persistirá.", error);
+    // Fails silently if localStorage is not accessible
   }
   
   return false;
@@ -53,10 +52,9 @@ export async function setAndValidateApiKey(apiKey: string): Promise<void> {
     try {
       localStorage.setItem(API_KEY_STORAGE_KEY, apiKey);
     } catch (error) {
-      console.warn("No se pudo guardar la API Key en localStorage. Funcionará solo para esta sesión.", error);
+      // Fails silently if localStorage is not accessible
     }
     chatSessions.clear(); // Clear old chat sessions with the previous key
-    console.log("Nueva clave de API validada y guardada.");
   } catch (error: any) {
     console.error("Error de validación de API key:", error);
     // Provide a more user-friendly error message
@@ -74,11 +72,10 @@ export function clearApiKey(): void {
     try {
       localStorage.removeItem(API_KEY_STORAGE_KEY);
     } catch (error) {
-       console.warn("No se pudo eliminar la API Key de localStorage.", error);
+       // Fails silently if localStorage is not accessible
     }
     ai = null;
     chatSessions.clear();
-    console.log("Clave de API eliminada.");
 }
 
 function getChat(agent: Agent): Chat {
@@ -105,12 +102,6 @@ export async function generateResponse(
   agent: Agent,
   message: string
 ): Promise<string> {
-   if (!isAiReady()) {
-    return Promise.resolve(
-      "Modo de demostración: La funcionalidad de chat está desactivada.\n\nPor favor, configura tu API Key desde el **Centro de Mando** para hablar con los agentes."
-    );
-  }
-  
   const chat = getChat(agent);
 
   try {
@@ -121,7 +112,6 @@ export async function generateResponse(
     if (error.message.includes('API key not valid')) {
         clearApiKey();
         // Force a reload to show the API key prompt again
-        window.location.reload();
         throw new Error("La clave de API ha dejado de ser válida. Se requiere reconfiguración.");
     }
     throw new Error("Hubo un problema al comunicarse con el agente de IA.");

@@ -4,6 +4,10 @@ export interface Message {
   id: number | string;
   text: string;
   sender: 'user' | 'agent';
+  action?: {
+    text: string;
+    onClick: () => void;
+  };
 }
 
 export interface Personality {

@@ -1,27 +1,18 @@
 import React from 'react';
-import type { Agent, AgentColor } from '../types.ts';
+import MessageSquareIcon from './icons/MessageSquareIcon.tsx';
 
 interface FloatingChatButtonProps {
-  agent: Agent;
   onClick: () => void;
 }
 
-const FloatingChatButton: React.FC<FloatingChatButtonProps> = ({ agent, onClick }) => {
-  const colorClasses: Record<AgentColor, string> = {
-    cyan: 'from-cyan-500 to-cyan-700 shadow-cyan-500/40 focus:ring-cyan-500/50',
-    purple: 'from-purple-500 to-purple-700 shadow-purple-500/40 focus:ring-purple-500/50',
-    yellow: 'from-yellow-500 to-yellow-700 shadow-yellow-500/40 focus:ring-yellow-500/50',
-    pink: 'from-pink-500 to-pink-700 shadow-pink-500/40 focus:ring-pink-500/50',
-  }
-  
+const FloatingChatButton: React.FC<FloatingChatButtonProps> = ({ onClick }) => {
   return (
     <button
       onClick={onClick}
-      className={`fixed bottom-8 right-8 z-40 w-16 h-16 rounded-full bg-gradient-to-br text-white shadow-2xl flex items-center justify-center transition-transform transform hover:scale-110 focus:outline-none focus:ring-4 ${colorClasses[agent.color]}`}
-      title={`Hablar con ${agent.name}`}
-      aria-label={`Abrir chat con ${agent.name}`}
+      className="fixed bottom-6 right-6 bg-gradient-to-r from-cyan-500 to-blue-500 text-white w-16 h-16 rounded-full shadow-lg flex items-center justify-center transform hover:scale-110 transition-transform duration-200 z-40 animate-pulse"
+      aria-label="Abrir chat"
     >
-      <agent.icon className="w-8 h-8" />
+      <MessageSquareIcon className="w-8 h-8" />
     </button>
   );
 };
