@@ -53,4 +53,4 @@ export interface SkillBranch {
   edges: SkillEdge[];
 }
 
-export type View = 'chat' | 'nexus_zero_course' | 'programs' | 'challenges' | 'cognitive_gym' | 'api_key_setup';
+export type View = 'chat' | 'nexus_zero_course' | 'programs' | 'challenges' | 'cognitive_gym' | 'api_key_setup' | 'critical_thinking_course' | 'creativity_course' | 'entrepreneurship_course' | 'gen_ai_course';

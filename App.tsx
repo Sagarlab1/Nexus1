@@ -11,6 +11,10 @@ import ApiKeyPrompt from './components/ApiKeyPrompt.tsx';
 import PremiumModal from './components/PremiumModal.tsx';
 import ChatModal from './components/ChatModal.tsx';
 import FloatingChatButton from './components/FloatingChatButton.tsx';
+import CriticalThinkingCoursePage from './components/CriticalThinkingCoursePage.tsx';
+import CreativityCoursePage from './components/CreativityCoursePage.tsx';
+import EntrepreneurshipCoursePage from './components/EntrepreneurshipCoursePage.tsx';
+import GenerativeAiCoursePage from './components/GenerativeAiCoursePage.tsx';
 import { AGENTS } from './constants.tsx';
 import type { View, Agent, Message } from './types.ts';
 import { initializeAi, setAndValidateApiKey, clearApiKey, generateResponse, isAiReady } from './services/ai.ts';
@@ -66,7 +70,8 @@ const App: React.FC = () => {
         targetAgent = newAgent;
       }
     }
-    if (view === 'chat' && (!messages.length || agentId)) {
+    // Initialize chat only if it's the first time or the agent has changed for the chat view.
+    if (view === 'chat' && (!messages.length || (agentId && activeAgent.id !== agentId))) {
       initChat(targetAgent);
     }
     setIsSidebarOpen(false);
@@ -140,11 +145,19 @@ const App: React.FC = () => {
       case 'nexus_zero_course':
         return <NexusZeroPage onNavigateToPrograms={() => setActiveView('programs')} />;
       case 'programs':
-        return <ProgramsPage onOpenPremium={() => setShowPremiumModal(true)} />;
+        return <ProgramsPage onNavigate={handleNavigate} onOpenPremium={() => setShowPremiumModal(true)} />;
       case 'challenges':
         return <LatinoChallengesPage />;
       case 'cognitive_gym':
         return <CognitiveGymPage />;
+      case 'critical_thinking_course':
+        return <CriticalThinkingCoursePage onBack={() => setActiveView('programs')} />;
+      case 'creativity_course':
+        return <CreativityCoursePage onBack={() => setActiveView('programs')} />;
+      case 'entrepreneurship_course':
+        return <EntrepreneurshipCoursePage onBack={() => setActiveView('programs')} />;
+      case 'gen_ai_course':
+        return <GenerativeAiCoursePage onBack={() => setActiveView('programs')} />;
       default:
         return <NexusZeroPage onNavigateToPrograms={() => setActiveView('programs')} />;
     }
@@ -216,7 +229,16 @@ const App: React.FC = () => {
       </div>
       
       {showPremiumModal && <PremiumModal onClose={() => setShowPremiumModal(false)} />}
-      {activeView !== 'chat' && <FloatingChatButton onClick={() => setShowChatModal(true)} />}
+      
+      {activeView !== 'chat' && activeView !== 'api_key_setup' && !showChatModal && (
+        <FloatingChatButton 
+            onClick={() => {
+                if (!messages.length) initChat(activeAgent);
+                setShowChatModal(true);
+            }} 
+        />
+      )}
+
       {showChatModal && (
         <ChatModal 
           onClose={() => setShowChatModal(false)}

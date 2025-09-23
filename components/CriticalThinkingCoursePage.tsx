@@ -1,11 +1,16 @@
 import React, { useState, useEffect } from 'react';
+import type { View } from '../types.ts';
 
 const TOTAL_LESSONS = 9;
 const STORAGE_KEY = 'pc_course_progress';
 
 type CourseSection = 'intro' | 'week1' | 'week2' | 'week3' | 'books';
 
-const CriticalThinkingCoursePage: React.FC = () => {
+interface CriticalThinkingCoursePageProps {
+    onBack: () => void;
+}
+
+const CriticalThinkingCoursePage: React.FC<CriticalThinkingCoursePageProps> = ({ onBack }) => {
   const [activeSection, setActiveSection] = useState<CourseSection>('intro');
   const [progress, setProgress] = useState<Record<string, boolean>>({});
 
@@ -48,19 +53,16 @@ const CriticalThinkingCoursePage: React.FC = () => {
     </div>
   );
   
-  // FIX: Replaced JSX.Element with React.ReactElement to fix 'Cannot find namespace JSX' error.
   const renderSection = (id: CourseSection, title: string, lessons: React.ReactElement[], prev?: CourseSection, next?: CourseSection, finalCTA?: React.ReactElement) => (
-    <section className={`pc-course-card ${activeSection === id ? '' : 'hidden'}`}>
+    <section className={`pc-course-card ${activeSection === id ? '' : 'hidden'} animate-fade-in`}>
       <h2 className="pc-course-title">{title}</h2>
       {lessons}
       {finalCTA}
       <div className="pc-course-nav">
-        <button className="pc-course-btn alt" onClick={() => setActiveSection(prev || 'intro')}>← Volver</button>
-        {next ? (
+        { prev ? <button className="pc-course-btn alt" onClick={() => setActiveSection(prev)}>← Anterior</button> : <span></span> }
+        { next ? (
           <button className="pc-course-btn" onClick={() => setActiveSection(next)}>Siguiente Módulo →</button>
-        ) : (
-          <button className="pc-course-btn" disabled>Descargar Certificado (Próximamente)</button>
-        )}
+        ) : <span></span> }
       </div>
     </section>
   );
@@ -71,33 +73,38 @@ const CriticalThinkingCoursePage: React.FC = () => {
         .pc-course-header { display:flex; align-items:center; gap:18px; margin-bottom: 24px; }
         .pc-course-logo { width:64px; height:64px; border-radius:14px; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg, #38bdf8, #0ea5e9); box-shadow:0 6px 20px rgba(12,18,30,0.6); font-weight: 800; font-size: 24px; color: white; }
         .pc-course-card { background: rgba(17, 24, 39, 0.5); border-radius:14px; padding:24px; border:1px solid rgba(255,255,255,0.1); margin-bottom:20px; }
-        .pc-course-title { font-size:28px; font-weight: 800; margin:0 0 16px; color: white; }
+        .pc-course-title { font-size:28px; font-weight: 800; margin:0 0 16px; color: #38bdf8; }
         .pc-course-btn { background:#0ea5e9; border:none; padding:10px 14px; border-radius:10px; color:white; font-weight:600; cursor:pointer; box-shadow:0 4px 15px rgba(14, 165, 233, 0.2); transition: all 0.2s; }
         .pc-course-btn:hover:not(:disabled) { background: #0284c7; transform: translateY(-2px); }
         .pc-course-btn:disabled { background: #374151; cursor: not-allowed; }
         .pc-course-btn.alt { background:transparent; border:1px solid rgba(255,255,255,0.1); color:#9ca3af; }
         .pc-course-btn.alt:hover { background: rgba(255,255,255,0.05); }
         .pc-course-nav { display:flex; justify-content:space-between; margin-top:20px; }
-        .pc-course-progress-bar { height:12px; background:rgba(255,255,255,0.04); border-radius:999px; overflow:hidden; margin-top:12px; }
+        .pc-course-progress-bar { height:8px; background:rgba(255,255,255,0.04); border-radius:999px; overflow:hidden; margin-top:4px; }
         .pc-course-progress-bar > i { display:block; height:100%; background:linear-gradient(90deg,#06b6d4,#38bdf8); transition:width 400ms ease; }
         .pc-course-checkbox { accent-color: #0ea5e9; width: 1.25rem; height: 1.25rem; }
         .hidden { display: none; }
       `}</style>
-      <div className="pc-course-container">
+      <div className="pc-course-container max-w-4xl mx-auto">
         <header className="pc-course-header">
             <div className="pc-course-logo">PC</div>
             <div>
-                <h1 className="text-2xl font-extrabold m-0">Curso de Pensamiento Crítico</h1>
+                <h1 className="text-2xl font-extrabold m-0 text-white">Curso de Pensamiento Crítico</h1>
                 <p className="m-0 text-gray-400">Un programa de 3 meses, con lecturas sugeridas y guardado automático.</p>
             </div>
         </header>
         <main>
-            <section className={`pc-course-card ${activeSection === 'intro' ? '' : 'hidden'}`}>
-                <h2 className="pc-course-title">Bienvenido a tu entrenamiento en Pensamiento Crítico</h2>
+            <section className={`pc-course-card ${activeSection === 'intro' ? '' : 'hidden'} animate-fade-in`}>
+                <h2 className="pc-course-title">Bienvenido a tu entrenamiento</h2>
                 <p className="text-gray-300">Este curso está diseñado para 3 meses. Cada módulo desbloquea nuevas lecciones, con lecturas y ejercicios. Tu progreso se guarda automáticamente. Haz clic para comenzar.</p>
-                <button className="pc-course-btn mt-4" onClick={() => setActiveSection('week1')}>Comenzar Curso</button>
-                <div className="pc-course-progress-bar mt-4"><i style={{width: `${progressPct}%`}}></i></div>
-                <div className="mt-2 text-sm text-gray-400">Progreso: {progressPct}% ({completedLessons}/{TOTAL_LESSONS} lecciones)</div>
+                <div className="mt-4">
+                  <button className="pc-course-btn" onClick={() => setActiveSection('week1')}>Comenzar Curso</button>
+                  <button className="pc-course-btn alt ml-2" onClick={onBack}>« Volver a Programas</button>
+                </div>
+                <div className="mt-4">
+                    <div className="mt-2 text-sm text-gray-400">Progreso: {progressPct}% ({completedLessons}/{TOTAL_LESSONS} lecciones)</div>
+                    <div className="pc-course-progress-bar"><i style={{width: `${progressPct}%`}}></i></div>
+                </div>
             </section>
 
             {renderSection('week1', 'Módulo 1 — Fundamentos', [
