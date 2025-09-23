@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
 import type { Message, Agent, AgentColor } from '../types.ts';
 import AgentPanel from './AgentPanel.tsx';
 import XIcon from './icons/XIcon.tsx';
@@ -6,6 +7,10 @@ import SendIcon from './icons/SendIcon.tsx';
 import UserIcon from './icons/UserIcon.tsx';
 import ClipboardIcon from './icons/ClipboardIcon.tsx';
 import CheckIcon from './icons/CheckIcon.tsx';
+import SpeakerIcon from './icons/SpeakerIcon.tsx';
+import SpeakerOffIcon from './icons/SpeakerOffIcon.tsx';
+import MicrophoneIcon from './icons/MicrophoneIcon.tsx';
+import StopIcon from './icons/StopIcon.tsx';
 
 
 interface ChatModalProps {
@@ -26,7 +31,14 @@ const agentColorStyles: Record<AgentColor, { bg: string; text: string; border: s
 };
 
 
-const ChatBubble: React.FC<{ message: Message; agent: Agent }> = ({ message, agent }) => {
+interface ChatBubbleProps {
+    message: Message;
+    agent: Agent;
+    onToggleSpeech: (message: Message) => void;
+    isSpeaking: boolean;
+}
+
+const ChatBubble: React.FC<ChatBubbleProps> = ({ message, agent, onToggleSpeech, isSpeaking }) => {
   const [copied, setCopied] = useState(false);
   const agentStyles = agentColorStyles[agent.color];
 
@@ -66,13 +78,22 @@ const ChatBubble: React.FC<{ message: Message; agent: Agent }> = ({ message, age
             </button>
           </div>
         )}
-        <button
-          onClick={handleCopy}
-          className="absolute top-2 right-2 p-1 bg-gray-700 rounded-md text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity"
-          aria-label="Copiar texto"
-        >
-          {copied ? <CheckIcon className="w-4 h-4 text-green-400" /> : <ClipboardIcon className="w-4 h-4" />}
-        </button>
+        <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <button
+                onClick={() => onToggleSpeech(message)}
+                className="p-1 bg-gray-700 rounded-md text-gray-400 hover:text-white"
+                aria-label={isSpeaking ? "Detener lectura" : "Leer en voz alta"}
+            >
+                {isSpeaking ? <SpeakerOffIcon className="w-4 h-4 text-cyan-400 animate-pulse" /> : <SpeakerIcon className="w-4 h-4" />}
+            </button>
+            <button
+              onClick={handleCopy}
+              className="p-1 bg-gray-700 rounded-md text-gray-400 hover:text-white"
+              aria-label="Copiar texto"
+            >
+              {copied ? <CheckIcon className="w-4 h-4 text-green-400" /> : <ClipboardIcon className="w-4 h-4" />}
+            </button>
+        </div>
       </div>
     </div>
   );
@@ -91,6 +112,55 @@ const ChatModal: React.FC<ChatModalProps> = ({
   const [inputMessage, setInputMessage] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const [speakingMessageId, setSpeakingMessageId] = useState<string | number | null>(null);
+
+  const {
+    transcript,
+    listening,
+    resetTranscript,
+    browserSupportsSpeechRecognition,
+  } = useSpeechRecognition();
+
+  useEffect(() => {
+    setInputMessage(transcript);
+  }, [transcript]);
+
+  useEffect(() => {
+    const synth = window.speechSynthesis;
+    // Cancel speech when modal closes or agent changes
+    return () => {
+      if (synth.speaking) {
+        synth.cancel();
+        setSpeakingMessageId(null);
+      }
+    };
+  }, [activeAgent]);
+
+  const handleToggleSpeech = (message: Message) => {
+    const synth = window.speechSynthesis;
+    // Remove markdown for cleaner speech
+    const utteranceText = message.text.replace(/[*_`]/g, '');
+
+    if (speakingMessageId === message.id) {
+      synth.cancel();
+      setSpeakingMessageId(null);
+    } else {
+      if (synth.speaking) {
+        synth.cancel();
+      }
+      const utterance = new SpeechSynthesisUtterance(utteranceText);
+      utterance.lang = 'es-ES'; // Set language to Spanish
+      utterance.onend = () => {
+        setSpeakingMessageId(null);
+      };
+      utterance.onerror = (event) => {
+        console.error('Speech synthesis error', event);
+        setSpeakingMessageId(null);
+      };
+      synth.speak(utterance);
+      setSpeakingMessageId(message.id);
+    }
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -125,6 +195,19 @@ const ChatModal: React.FC<ChatModalProps> = ({
     if (inputMessage.trim() && !isSending) {
       onSendMessage(inputMessage);
       setInputMessage('');
+      resetTranscript();
+      if (listening) {
+        SpeechRecognition.stopListening();
+      }
+    }
+  };
+
+  const handleListen = () => {
+    if (listening) {
+      SpeechRecognition.stopListening();
+    } else {
+      resetTranscript();
+      SpeechRecognition.startListening({ continuous: true, language: 'es-ES' });
     }
   };
 
@@ -158,7 +241,13 @@ const ChatModal: React.FC<ChatModalProps> = ({
                   </header>
                 <div className="flex-1 p-6 overflow-y-auto space-y-6">
                     {messages.map((msg) => (
-                      <ChatBubble key={msg.id} message={msg} agent={activeAgent} />
+                      <ChatBubble 
+                        key={msg.id} 
+                        message={msg} 
+                        agent={activeAgent}
+                        onToggleSpeech={handleToggleSpeech}
+                        isSpeaking={speakingMessageId === msg.id}
+                      />
                     ))}
                     {isSending && (
                       <div className="flex items-start gap-3">
@@ -193,6 +282,20 @@ const ChatModal: React.FC<ChatModalProps> = ({
                         rows={1}
                         disabled={isSending}
                       />
+                      {browserSupportsSpeechRecognition && (
+                        <button
+                          type="button"
+                          onClick={handleListen}
+                          className={`p-3 rounded-full transition-colors flex-shrink-0 ${
+                            listening
+                              ? 'bg-red-500 hover:bg-red-400 text-white animate-pulse'
+                              : 'bg-gray-700 hover:bg-gray-600 text-gray-300'
+                          }`}
+                          aria-label={listening ? 'Detener grabación' : 'Iniciar grabación'}
+                        >
+                          {listening ? <StopIcon className="w-5 h-5" /> : <MicrophoneIcon className="w-5 h-5" />}
+                        </button>
+                      )}
                       <button
                         type="submit"
                         disabled={!inputMessage.trim() || isSending}
