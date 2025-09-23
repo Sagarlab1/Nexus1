@@ -160,7 +160,7 @@ const App: React.FC = () => {
             />
         </aside>
 
-        <section className="col-span-1 lg:col-span-6 h-full">
+        <section className="col-span-1 lg:col-span-6 h-full min-h-0">
             {renderContent()}
         </section>
 
