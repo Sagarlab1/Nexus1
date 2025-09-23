@@ -6,7 +6,7 @@ import NexusZeroPage from './components/NexusZeroPage.tsx';
 import ProgramsPage from './components/ProgramsPage.tsx';
 import LatinoChallengesPage from './components/LatinoChallengesPage.tsx';
 import CognitiveGymPage from './components/CognitiveGymPage.tsx';
-import ConfigurationErrorScreen from './components/ConfigurationErrorScreen.tsx';
+import ApiKeyPrompt from './components/ApiKeyPrompt.tsx';
 import PremiumModal from './components/PremiumModal.tsx';
 import ChatModal from './components/ChatModal.tsx';
 import FloatingChatButton from './components/FloatingChatButton.tsx';
@@ -16,13 +16,16 @@ import EntrepreneurshipCoursePage from './components/EntrepreneurshipCoursePage.
 import GenerativeAiCoursePage from './components/GenerativeAiCoursePage.tsx';
 import { AGENTS } from './constants.tsx';
 import type { View, Agent, Message } from './types.ts';
-import { generateResponse } from './services/ai.ts';
+import { generateResponse, setApiKey, validateApiKey } from './services/ai.ts';
 import NexusLogo from './components/icons/NexusLogo.tsx';
 import MenuIcon from './components/icons/MenuIcon.tsx';
 
-const App: React.FC = () => {
-  const isApiKeySet = !!process.env.API_KEY;
+const API_KEY_STORAGE_KEY = 'NEXUS_SAPIENS_API_KEY';
 
+const App: React.FC = () => {
+  const [apiKey, setLocalApiKey] = useState<string | null>(null);
+  const [isKeyChecked, setIsKeyChecked] = useState(false);
+  
   const defaultAgent = AGENTS.find(a => a.id === 'critical_thinking') || AGENTS[0];
   
   const [activeView, setActiveView] = useState<View>('nexus_zero_course');
@@ -36,19 +39,38 @@ const App: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   useEffect(() => {
-    // Initialize chat with the default agent message when the app loads
-    if (isApiKeySet) {
-      initChat(defaultAgent);
+    const key = process.env.API_KEY || localStorage.getItem(API_KEY_STORAGE_KEY);
+    if (key) {
+      setApiKey(key);
+      setLocalApiKey(key);
     }
-  }, [isApiKeySet]);
-  
+    setIsKeyChecked(true);
+  }, []);
+
   const initChat = (agent: Agent) => {
       setMessages([
           { id: `welcome-${agent.id}-${Date.now()}`, sender: 'agent', text: `¡Hola! Soy ${agent.name}. ¿Cómo puedo asistirte?` }
       ]);
   };
+  
+  // Initialize chat when the main app is ready to be shown
+  useEffect(() => {
+    if (apiKey) {
+      initChat(defaultAgent);
+    }
+  }, [apiKey]);
+  
+  const handleSetKey = async (newKey: string) => {
+    const isValid = await validateApiKey(newKey);
+    if (isValid) {
+      localStorage.setItem(API_KEY_STORAGE_KEY, newKey);
+      setApiKey(newKey);
+      setLocalApiKey(newKey);
+    } else {
+      throw new Error("La clave API no es válida o ha ocurrido un error al verificarla.");
+    }
+  };
 
-  // --- Handlers that also close the mobile sidebar ---
   const handleNavigate = (view: View, agentId?: string) => {
     setActiveView(view);
     let targetAgent = activeAgent;
@@ -59,7 +81,6 @@ const App: React.FC = () => {
         targetAgent = newAgent;
       }
     }
-    // Initialize chat only if it's the first time or the agent has changed for the chat view.
     if (view === 'chat' && (!messages.length || (agentId && activeAgent.id !== agentId))) {
       initChat(targetAgent);
     }
@@ -119,8 +140,13 @@ const App: React.FC = () => {
     }
   };
   
-  if (!isApiKeySet) {
-    return <ConfigurationErrorScreen />;
+  if (!isKeyChecked) {
+    // Render a blank screen or a loading spinner while checking for the key
+    return null;
+  }
+
+  if (!apiKey) {
+    return <ApiKeyPrompt onSetKey={handleSetKey} />;
   }
 
   return (

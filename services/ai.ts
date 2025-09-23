@@ -2,38 +2,30 @@ import { GoogleGenAI, Chat, GenerateContentResponse } from "@google/genai";
 import type { Agent } from '../types.ts';
 
 let ai: GoogleGenAI | null = null;
+let currentApiKey: string | null = null;
 const chatSessions = new Map<string, Chat>();
 
-/**
- * Gets the singleton instance of the GoogleGenAI client, initializing it on first use.
- * This "lazy initialization" prevents the app from crashing if the API key is not
- * available at startup.
- * @returns The initialized GoogleGenAI instance.
- * @throws {Error} if the API_KEY environment variable is not set.
- */
+export function setApiKey(apiKey: string): void {
+  if (apiKey && apiKey !== currentApiKey) {
+    ai = new GoogleGenAI({ apiKey });
+    currentApiKey = apiKey;
+    chatSessions.clear();
+  }
+}
+
 function getAiInstance(): GoogleGenAI {
   if (!ai) {
-    if (!process.env.API_KEY) {
-      // This error will be caught by the App component, which shows a friendly screen.
-      throw new Error("La variable de entorno API_KEY no está configurada.");
-    }
-    ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    throw new Error("La clave API no ha sido configurada. Llama a setApiKey() primero.");
   }
   return ai;
 }
 
-/**
- * Obtiene o crea una sesión de chat para un agente específico.
- * Esto preserva el historial de conversación con el modelo de IA.
- * @param agent El agente para el que se obtendrá la sesión de chat.
- * @returns Una instancia de Chat.
- */
 function getChat(agent: Agent): Chat {
   if (chatSessions.has(agent.id)) {
     return chatSessions.get(agent.id)!;
   }
   
-  const aiInstance = getAiInstance(); // Ensure AI is initialized
+  const aiInstance = getAiInstance();
 
   const chat = aiInstance.chats.create({
     model: 'gemini-2.5-flash',
@@ -46,12 +38,6 @@ function getChat(agent: Agent): Chat {
   return chat;
 }
 
-/**
- * Genera una respuesta del agente especificado para un mensaje dado.
- * @param agent El agente a utilizar para generar la respuesta.
- * @param message El mensaje del usuario.
- * @returns La respuesta de texto del agente.
- */
 export async function generateResponse(
   agent: Agent,
   message: string
@@ -62,8 +48,30 @@ export async function generateResponse(
     return response.text;
   } catch (error: any) {
     console.error("Error al generar respuesta desde Gemini:", error);
-    // El error será capturado en App.tsx y mostrado al usuario.
-    // El mensaje del SDK debería ser lo suficientemente informativo.
+    if (error.message && error.message.includes('API key not valid')) {
+        throw new Error("La clave API proporcionada no es válida. Por favor, verifica e inténtalo de nuevo.");
+    }
     throw error;
   }
+}
+
+/**
+ * Validates an API key by making a simple test call.
+ * @param apiKey The API key to validate.
+ * @returns True if the key is valid, false otherwise.
+ */
+export async function validateApiKey(apiKey: string): Promise<boolean> {
+    if (!apiKey) return false;
+    try {
+        const testAi = new GoogleGenAI({ apiKey });
+        // Using generateContent directly for a simple, stateless check
+        await testAi.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: 'test',
+        });
+        return true;
+    } catch (error) {
+        console.error("API Key validation failed:", error);
+        return false;
+    }
 }
