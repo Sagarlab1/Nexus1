@@ -1,6 +1,6 @@
 import React from 'react';
-import TrophyIcon from './icons/TrophyIcon';
-import FlagIcon from './icons/FlagIcon';
+import TrophyIcon from './icons/TrophyIcon.tsx';
+import FlagIcon from './icons/FlagIcon.tsx';
 
 const LatinoChallengesPage: React.FC = () => {
   return (

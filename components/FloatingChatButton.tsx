@@ -1,5 +1,5 @@
 import React from 'react';
-import type { Agent } from '../types';
+import type { Agent, AgentColor } from '../types.ts';
 
 interface FloatingChatButtonProps {
   agent: Agent;
@@ -7,8 +7,7 @@ interface FloatingChatButtonProps {
 }
 
 const FloatingChatButton: React.FC<FloatingChatButtonProps> = ({ agent, onClick }) => {
-  // A safelist or map is needed for dynamic Tailwind classes in production
-  const colorClasses = {
+  const colorClasses: Record<AgentColor, string> = {
     cyan: 'from-cyan-500 to-cyan-700 shadow-cyan-500/40 focus:ring-cyan-500/50',
     purple: 'from-purple-500 to-purple-700 shadow-purple-500/40 focus:ring-purple-500/50',
     yellow: 'from-yellow-500 to-yellow-700 shadow-yellow-500/40 focus:ring-yellow-500/50',
@@ -18,7 +17,7 @@ const FloatingChatButton: React.FC<FloatingChatButtonProps> = ({ agent, onClick 
   return (
     <button
       onClick={onClick}
-      className={`fixed bottom-8 right-8 z-40 w-16 h-16 rounded-full bg-gradient-to-br text-white shadow-2xl flex items-center justify-center transition-transform transform hover:scale-110 focus:outline-none focus:ring-4 ${colorClasses[agent.color] || colorClasses.cyan}`}
+      className={`fixed bottom-8 right-8 z-40 w-16 h-16 rounded-full bg-gradient-to-br text-white shadow-2xl flex items-center justify-center transition-transform transform hover:scale-110 focus:outline-none focus:ring-4 ${colorClasses[agent.color]}`}
       title={`Hablar con ${agent.name}`}
       aria-label={`Abrir chat con ${agent.name}`}
     >

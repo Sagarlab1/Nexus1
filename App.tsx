@@ -1,32 +1,28 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { AGENTS } from './constants';
-import type { Agent, Message } from './types';
-// FIX: Import `generateResponse` to make it available in the component.
-import { initializeAi, setAndValidateApiKey, clearApiKey, generateResponse } from './services/ai';
-import { useSound } from './hooks/useSound';
+// import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
+import { AGENTS } from './constants.tsx';
+import type { Agent, Message, View } from './types.ts';
+import { initializeAi, setAndValidateApiKey, clearApiKey, generateResponse } from './services/ai.ts';
+import { useSound } from './hooks/useSound.ts';
 
 // Component Imports
-import UserRankPanel from './components/UserRankPanel';
-import LoginScreen from './components/LoginScreen';
-import PremiumModal from './components/PremiumModal';
-import ChatModal from './components/ChatModal';
-import FloatingChatButton from './components/FloatingChatButton';
-import NexusLogo from './components/icons/NexusLogo';
-import ConfigurationErrorScreen from './components/ConfigurationErrorScreen';
-import ApiKeyPrompt from './components/ApiKeyPrompt';
+import UserRankPanel from './components/UserRankPanel.tsx';
+import LoginScreen from './components/LoginScreen.tsx';
+import PremiumModal from './components/PremiumModal.tsx';
+import ChatModal from './components/ChatModal.tsx';
+import FloatingChatButton from './components/FloatingChatButton.tsx';
+import NexusLogo from './components/icons/NexusLogo.tsx';
+import ApiKeyPrompt from './components/ApiKeyPrompt.tsx';
 
 // Page/View Imports
-import NexusZeroPage from './components/NexusZeroPage';
-import ProgramsPage from './components/ProgramsPage';
-import LatinoChallengesPage from './components/LatinoChallengesPage';
-import CognitiveGymPage from './components/CognitiveGymPage';
-
-export type View = 'chat' | 'nexus_zero_course' | 'programs' | 'challenges' | 'cognitive_gym';
-type AppStatus = 'initializing' | 'needs_key' | 'ready' | 'error';
+import NexusZeroPage from './components/NexusZeroPage.tsx';
+import ProgramsPage from './components/ProgramsPage.tsx';
+import LatinoChallengesPage from './components/LatinoChallengesPage.tsx';
+import CognitiveGymPage from './components/CognitiveGymPage.tsx';
 
 const App: React.FC = () => {
-  const [appStatus, setAppStatus] = useState<AppStatus>('initializing');
-  const [configError, setConfigError] = useState<Error | null>(null);
+  const [isInitializing, setIsInitializing] = useState(true);
+  const [isAiConfigured, setIsAiConfigured] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [messagesByAgent, setMessagesByAgent] = useState<Record<string, Message[]>>({});
   const [activeAgent, setActiveAgent] = useState<Agent>(AGENTS[2]); // Default to Nexus
@@ -35,18 +31,31 @@ const App: React.FC = () => {
   const [activeView, setActiveView] = useState<View>('nexus_zero_course');
   const [isPremiumModalOpen, setIsPremiumModalOpen] = useState(false);
   const [isChatModalOpen, setIsChatModalOpen] = useState(false);
-  const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  
+  // Temporarily disable speech recognition to solve library conflict
+  const listening = false;
+  const transcript = '';
+  const resetTranscript = () => {};
+  const browserSupportsSpeechRecognition = false;
   
   const playSound = useSound();
   
   useEffect(() => {
-    if (initializeAi()) {
-        setAppStatus('ready');
-    } else {
-        setAppStatus('needs_key');
-    }
+    // Simulate initialization and check for existing API key
+    setTimeout(() => {
+      setIsAiConfigured(initializeAi());
+      setIsInitializing(false);
+    }, 500);
   }, []);
+
+  // Effect to update input with transcript when listening ends
+  useEffect(() => {
+    if (!listening && transcript) {
+      setInput(prev => (prev ? prev + ' ' : '') + transcript);
+      resetTranscript();
+    }
+  }, [listening, transcript]);
 
   const messages = messagesByAgent[activeAgent.id] || [];
   const setMessages = (updater: React.SetStateAction<Message[]>) => {
@@ -55,25 +64,27 @@ const App: React.FC = () => {
   };
 
   useEffect(() => {
-    if (appStatus === 'ready' && !messagesByAgent[activeAgent.id]) {
+    if (isAiConfigured && !messagesByAgent[activeAgent.id]) {
       setMessages([{
         id: 'welcome-' + activeAgent.id,
         text: `Hola, soy ${activeAgent.name}. ¿En qué puedo ayudarte hoy?`,
         sender: 'agent',
       }]);
     }
-  }, [activeAgent, appStatus, messagesByAgent]);
+  }, [activeAgent, isAiConfigured, messagesByAgent]);
 
   const handleLogin = () => setIsLoggedIn(true);
 
   const handleSetKey = async (apiKey: string) => {
     await setAndValidateApiKey(apiKey);
-    setAppStatus('ready');
+    setIsAiConfigured(true);
+    setActiveView('nexus_zero_course');
   };
 
   const handleResetKey = useCallback(() => {
       clearApiKey();
-      setAppStatus('needs_key');
+      setIsAiConfigured(false);
+      setActiveView('api_key_setup');
   }, []);
 
   const handleSendMessage = async () => {
@@ -112,7 +123,11 @@ const App: React.FC = () => {
   };
   
   const handleStopGeneration = () => setIsLoading(false);
-  const handleToggleListening = () => setIsListening(prev => !prev);
+  
+  const handleToggleListening = () => {
+    alert("La función de reconocimiento de voz está temporalmente desactivada.");
+  };
+
   const handleStopSpeaking = () => setIsSpeaking(false);
 
   const renderActiveView = () => {
@@ -121,11 +136,12 @@ const App: React.FC = () => {
       case 'programs': return <ProgramsPage onOpenPremium={() => setIsPremiumModalOpen(true)} />;
       case 'challenges': return <LatinoChallengesPage />;
       case 'cognitive_gym': return <CognitiveGymPage />;
+      case 'api_key_setup': return <ApiKeyPrompt onSetKey={handleSetKey} />;
       default: return <NexusZeroPage onNavigateToPrograms={() => handleNavigate('programs')} />;
     }
   };
   
-  if (appStatus === 'initializing') {
+  if (isInitializing) {
     return (
         <div className="fixed inset-0 bg-gray-900 z-50 flex flex-col items-center justify-center text-white">
             <NexusLogo className="w-20 h-20 text-cyan-400 animate-spin mb-4" />
@@ -133,16 +149,8 @@ const App: React.FC = () => {
         </div>
     );
   }
-  
-  if (appStatus === 'needs_key') {
-      return <ApiKeyPrompt onSetKey={handleSetKey} />;
-  }
 
-  if (appStatus === 'error') {
-    return <ConfigurationErrorScreen error={configError!} onReset={() => window.location.reload()} />;
-  }
-
-  if (appStatus === 'ready' && !isLoggedIn) {
+  if (!isLoggedIn) {
     return <LoginScreen onLogin={handleLogin} />;
   }
 
@@ -154,11 +162,14 @@ const App: React.FC = () => {
           activeView={activeView} 
           onNavigate={handleNavigate}
           onOpenPremium={() => setIsPremiumModalOpen(true)}
+          isAiConfigured={isAiConfigured}
           onResetKey={handleResetKey}
          />
       </div>
-      <main className="flex-1 h-full">
-        {renderActiveView()}
+      <main className="flex-1 h-full relative">
+        <div key={activeView} className="absolute inset-0 animate-fade-in">
+          {renderActiveView()}
+        </div>
       </main>
       
       {isPremiumModalOpen && <PremiumModal onClose={() => setIsPremiumModalOpen(false)} />}
@@ -172,10 +183,11 @@ const App: React.FC = () => {
           onStopGeneration={handleStopGeneration}
           input={input}
           setInput={setInput}
-          isListening={isListening}
+          isListening={listening}
           onToggleListening={handleToggleListening}
           isSpeaking={isSpeaking}
           onStopSpeaking={handleStopSpeaking}
+          browserSupportsSpeechRecognition={browserSupportsSpeechRecognition}
         />
       )}
       <FloatingChatButton agent={activeAgent} onClick={() => handleNavigate('chat')} />

@@ -1,7 +1,7 @@
 import React from 'react';
-import NexusLogo from './icons/NexusLogo';
-import StarIcon from './icons/StarIcon';
-import CheckIcon from './icons/CheckIcon';
+import NexusLogo from './icons/NexusLogo.tsx';
+import StarIcon from './icons/StarIcon.tsx';
+import CheckIcon from './icons/CheckIcon.tsx';
 
 interface PremiumModalProps {
   onClose: () => void;
@@ -64,21 +64,6 @@ const PremiumModal: React.FC<PremiumModalProps> = ({ onClose }) => {
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
         </button>
       </div>
-       <style>{`
-        @keyframes fade-in-up {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        .animate-fade-in-up {
-            animation: fade-in-up 0.3s ease-out forwards;
-        }
-      `}</style>
     </div>
   );
 };

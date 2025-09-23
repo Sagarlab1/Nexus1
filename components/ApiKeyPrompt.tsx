@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import NexusLogo from './icons/NexusLogo';
-import AlertTriangleIcon from './icons/AlertTriangleIcon';
+import NexusLogo from './icons/NexusLogo.tsx';
+import AlertTriangleIcon from './icons/AlertTriangleIcon.tsx';
 
 interface ApiKeyPromptProps {
   onSetKey: (apiKey: string) => Promise<void>;

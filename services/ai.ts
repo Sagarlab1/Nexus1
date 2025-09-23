@@ -1,9 +1,14 @@
 import { GoogleGenAI, Chat, GenerateContentResponse } from "@google/genai";
-import type { Agent } from '../types';
+import type { Agent } from '../types.ts';
 
 let ai: GoogleGenAI | null = null;
 const chatSessions = new Map<string, Chat>();
 const API_KEY_STORAGE_KEY = 'nexus-sapiens-api-key';
+
+/**
+ * Checks if the AI service is configured and ready.
+ */
+export const isAiReady = (): boolean => !!ai;
 
 /**
  * Tries to initialize the AI service from localStorage.
@@ -12,12 +17,15 @@ const API_KEY_STORAGE_KEY = 'nexus-sapiens-api-key';
 export function initializeAi(): boolean {
   if (ai) return true;
 
-  const storedKey = localStorage.getItem(API_KEY_STORAGE_KEY);
-  
-  if (storedKey) {
-    ai = new GoogleGenAI({ apiKey: storedKey });
-    console.log("Servicio de IA inicializado desde localStorage.");
-    return true;
+  try {
+    const storedKey = localStorage.getItem(API_KEY_STORAGE_KEY);
+    if (storedKey) {
+      ai = new GoogleGenAI({ apiKey: storedKey });
+      console.log("Servicio de IA inicializado desde localStorage.");
+      return true;
+    }
+  } catch (error) {
+    console.warn("No se pudo acceder a localStorage. La API Key no se persistirá.", error);
   }
   
   return false;
@@ -42,7 +50,11 @@ export async function setAndValidateApiKey(apiKey: string): Promise<void> {
     
     // If validation succeeds, set the global instance and save to localStorage
     ai = tempAi;
-    localStorage.setItem(API_KEY_STORAGE_KEY, apiKey);
+    try {
+      localStorage.setItem(API_KEY_STORAGE_KEY, apiKey);
+    } catch (error) {
+      console.warn("No se pudo guardar la API Key en localStorage. Funcionará solo para esta sesión.", error);
+    }
     chatSessions.clear(); // Clear old chat sessions with the previous key
     console.log("Nueva clave de API validada y guardada.");
   } catch (error: any) {
@@ -59,7 +71,11 @@ export async function setAndValidateApiKey(apiKey: string): Promise<void> {
  * Clears the stored API key and resets the AI service.
  */
 export function clearApiKey(): void {
-    localStorage.removeItem(API_KEY_STORAGE_KEY);
+    try {
+      localStorage.removeItem(API_KEY_STORAGE_KEY);
+    } catch (error) {
+       console.warn("No se pudo eliminar la API Key de localStorage.", error);
+    }
     ai = null;
     chatSessions.clear();
     console.log("Clave de API eliminada.");
@@ -89,8 +105,10 @@ export async function generateResponse(
   agent: Agent,
   message: string
 ): Promise<string> {
-   if (!ai) {
-    throw new Error("El servicio de IA no está disponible. Por favor, refresca la página o reconfigura tu clave de API.");
+   if (!isAiReady()) {
+    return Promise.resolve(
+      "Modo de demostración: La funcionalidad de chat está desactivada.\n\nPor favor, configura tu API Key desde el **Centro de Mando** para hablar con los agentes."
+    );
   }
   
   const chat = getChat(agent);

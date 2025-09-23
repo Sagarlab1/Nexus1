@@ -1,19 +1,20 @@
 import React from 'react';
-import NexusLogo from './icons/NexusLogo';
-import StarIcon from './icons/StarIcon';
-import GraduationCapIcon from './icons/GraduationCapIcon';
-import TrophyIcon from './icons/TrophyIcon';
-import MessageSquareIcon from './icons/MessageSquareIcon';
-import CompassIcon from './icons/CompassIcon';
-import type { View } from '../App';
-import DumbbellIcon from './icons/DumbbellIcon';
-import LogOutIcon from './icons/LogOutIcon';
+import NexusLogo from './icons/NexusLogo.tsx';
+import StarIcon from './icons/StarIcon.tsx';
+import GraduationCapIcon from './icons/GraduationCapIcon.tsx';
+import TrophyIcon from './icons/TrophyIcon.tsx';
+import MessageSquareIcon from './icons/MessageSquareIcon.tsx';
+import CompassIcon from './icons/CompassIcon.tsx';
+import type { View } from '../types.ts';
+import DumbbellIcon from './icons/DumbbellIcon.tsx';
+import LogOutIcon from './icons/LogOutIcon.tsx';
 
 interface UserRankPanelProps {
   rank: string;
   activeView: View;
   onNavigate: (view: View, agentId?: string) => void;
   onOpenPremium: () => void;
+  isAiConfigured: boolean;
   onResetKey: () => void;
 }
 
@@ -23,7 +24,7 @@ const NavButton = ({ icon: Icon, label, isActive, onClick }) => (
         className={`w-full flex items-center p-3 rounded-lg transition-all duration-200 ${
             isActive 
             ? 'bg-cyan-500/20 text-cyan-300' 
-            : 'bg-gray-800/50 text-gray-400 hover:bg-gray-700/70 hover:text-white'
+            : 'bg-gray-800/50 text-gray-400 hover:bg-gray-700/70 hover:text-white transform hover:translate-x-1'
         }`}
     >
         <Icon className="w-5 h-5 mr-3" />
@@ -32,7 +33,7 @@ const NavButton = ({ icon: Icon, label, isActive, onClick }) => (
 );
 
 
-const UserRankPanel: React.FC<UserRankPanelProps> = ({ rank, activeView, onNavigate, onOpenPremium, onResetKey }) => {
+const UserRankPanel: React.FC<UserRankPanelProps> = ({ rank, activeView, onNavigate, onOpenPremium, isAiConfigured, onResetKey }) => {
   return (
     <div className="bg-gray-900/50 backdrop-blur-sm border border-gray-700/50 rounded-lg p-6 shadow-lg shadow-black/20 text-white flex flex-col h-full">
         <div className="w-full flex items-center text-left mb-4 group">
@@ -79,7 +80,7 @@ const UserRankPanel: React.FC<UserRankPanelProps> = ({ rank, activeView, onNavig
             className={`w-full flex items-center p-3 rounded-lg transition-all duration-200 ${
                 activeView === 'cognitive_gym' 
                 ? 'bg-pink-500/20 text-pink-300' 
-                : 'bg-gray-800/50 text-gray-400 hover:bg-gray-700/70 hover:text-white'
+                : 'bg-gray-800/50 text-gray-400 hover:bg-gray-700/70 hover:text-white transform hover:translate-x-1'
             }`}
         >
             <DumbbellIcon className="w-5 h-5 mr-3" />
@@ -100,10 +101,14 @@ const UserRankPanel: React.FC<UserRankPanelProps> = ({ rank, activeView, onNavig
           </button>
           <button 
             onClick={onResetKey}
-            className="w-full flex items-center justify-center gap-2 text-gray-400 p-3 rounded-lg bg-gray-800/50 hover:bg-gray-700/70 transition-colors"
+            className={`w-full flex items-center justify-center gap-2 p-3 rounded-lg transition-colors ${
+              isAiConfigured
+                ? 'text-gray-400 bg-gray-800/50 hover:bg-gray-700/70'
+                : 'text-yellow-300 bg-yellow-500/10 hover:bg-yellow-500/20 animate-pulse'
+            }`}
            >
             <LogOutIcon className="w-5 h-5" />
-            <span className="font-bold">Cambiar API Key</span>
+            <span className="font-bold">{isAiConfigured ? 'Cambiar API Key' : 'Configurar API Key'}</span>
           </button>
       </div>
     </div>

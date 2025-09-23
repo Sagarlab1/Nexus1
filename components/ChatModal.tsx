@@ -1,7 +1,7 @@
 import React from 'react';
-import ChatWindow from './ChatWindow';
-import type { Message, Agent } from '../types';
-import XIcon from './icons/XIcon';
+import ChatWindow from './ChatWindow.tsx';
+import type { Message, Agent } from '../types.ts';
+import XIcon from './icons/XIcon.tsx';
 
 // This interface re-declares the props needed by ChatWindow
 interface ChatModalProps {
@@ -17,6 +17,7 @@ interface ChatModalProps {
   onToggleListening: () => void;
   isSpeaking: boolean;
   onStopSpeaking: () => void;
+  browserSupportsSpeechRecognition: boolean;
 }
 
 const ChatModal: React.FC<ChatModalProps> = (props) => {
@@ -38,15 +39,6 @@ const ChatModal: React.FC<ChatModalProps> = (props) => {
         </button>
         <ChatWindow {...props} />
       </div>
-      <style>{`
-        @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
-        .animate-fade-in { animation: fade-in 0.2s ease-out forwards; }
-        @keyframes fade-in-up {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-fade-in-up { animation: fade-in-up 0.3s ease-out forwards; }
-      `}</style>
     </div>
   );
 };

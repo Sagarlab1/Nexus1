@@ -1,8 +1,8 @@
 import React from 'react';
-import BrainIcon from './icons/BrainIcon';
-import BulbIcon from './icons/BulbIcon';
-import RocketIcon from './icons/RocketIcon';
-import CodeIcon from './icons/CodeIcon';
+import BrainIcon from './icons/BrainIcon.tsx';
+import BulbIcon from './icons/BulbIcon.tsx';
+import RocketIcon from './icons/RocketIcon.tsx';
+import CodeIcon from './icons/CodeIcon.tsx';
 
 const skills = [
   {
@@ -39,6 +39,25 @@ const skills = [
   }
 ];
 
+const skillColorStyles: Record<string, { hoverBorder: string; text: string }> = {
+  cyan: {
+    hoverBorder: 'hover:border-cyan-500',
+    text: 'text-cyan-400',
+  },
+  purple: {
+    hoverBorder: 'hover:border-purple-500',
+    text: 'text-purple-400',
+  },
+  yellow: {
+    hoverBorder: 'hover:border-yellow-500',
+    text: 'text-yellow-400',
+  },
+  pink: {
+    hoverBorder: 'hover:border-pink-500',
+    text: 'text-pink-400',
+  },
+};
+
 interface ProgramsPageProps {
   onOpenPremium: () => void;
 }
@@ -51,28 +70,31 @@ const ProgramsPage: React.FC<ProgramsPageProps> = ({ onOpenPremium }) => {
         <p className="text-lg text-center text-cyan-400 font-mono mb-10">FORJA LAS 4 HABILIDADES DEL FUTURO</p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {skills.map((skill) => (
-            <div 
-              key={skill.name} 
-              className={`bg-gray-800/60 p-6 rounded-lg border-2 border-transparent hover:border-${skill.color}-500 cursor-pointer transition-all duration-300 flex flex-col group`}
-              onClick={onOpenPremium}
-              role='button'
-              tabIndex={0}
-              onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onOpenPremium()}
-            >
-              <div className="flex items-center mb-4">
-                <skill.icon className={`w-10 h-10 mr-4 text-${skill.color}-400`} />
-                <h2 className={`text-2xl font-bold text-white`}>{skill.name}</h2>
+          {skills.map((skill) => {
+            const styles = skillColorStyles[skill.color];
+            return (
+              <div 
+                key={skill.name} 
+                className={`bg-gray-800/60 p-6 rounded-lg border-2 border-transparent ${styles.hoverBorder} cursor-pointer transition-all duration-300 flex flex-col group`}
+                onClick={onOpenPremium}
+                role='button'
+                tabIndex={0}
+                onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onOpenPremium()}
+              >
+                <div className="flex items-center mb-4">
+                  <skill.icon className={`w-10 h-10 mr-4 ${styles.text}`} />
+                  <h2 className={`text-2xl font-bold text-white`}>{skill.name}</h2>
+                </div>
+                <p className="text-gray-300 flex-1">
+                  {skill.description}
+                </p>
+                <div className="flex justify-between items-center mt-4 pt-4 border-t border-gray-700/50">
+                  <span className={`text-xl font-bold ${styles.text}`}>{skill.price}</span>
+                  <p className="text-sm text-cyan-300 font-semibold group-hover:underline">» Ver Plan Premium</p>
+                </div>
               </div>
-              <p className="text-gray-300 flex-1">
-                {skill.description}
-              </p>
-              <div className="flex justify-between items-center mt-4 pt-4 border-t border-gray-700/50">
-                <span className={`text-xl font-bold text-${skill.color}-400`}>{skill.price}</span>
-                <p className="text-sm text-cyan-300 font-semibold group-hover:underline">» Ver Plan Premium</p>
-              </div>
-            </div>
-          ))}
+            )
+            })}
         </div>
 
         <div className="mt-12 text-center bg-gray-800 p-6 rounded-lg">

@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import CompassIcon from './icons/CompassIcon';
-import AnalysisIcon from './icons/AnalysisIcon';
-import BrainIcon from './icons/BrainIcon';
-import RocketIcon from './icons/RocketIcon';
-import CodeIcon from './icons/CodeIcon';
-import BulbIcon from './icons/BulbIcon';
-import MessageSquareIcon from './icons/MessageSquareIcon';
-import NexusLogo from './icons/NexusLogo';
-import GraduationCapIcon from './icons/GraduationCapIcon';
+import CompassIcon from './icons/CompassIcon.tsx';
+import AnalysisIcon from './icons/AnalysisIcon.tsx';
+import BrainIcon from './icons/BrainIcon.tsx';
+import RocketIcon from './icons/RocketIcon.tsx';
+import CodeIcon from './icons/CodeIcon.tsx';
+import BulbIcon from './icons/BulbIcon.tsx';
+import MessageSquareIcon from './icons/MessageSquareIcon.tsx';
+import NexusLogo from './icons/NexusLogo.tsx';
+import GraduationCapIcon from './icons/GraduationCapIcon.tsx';
 
 const STORAGE_KEY = 'nexus_zero_progress';
 const TOTAL_DAYS = 7;

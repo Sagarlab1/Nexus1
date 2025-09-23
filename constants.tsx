@@ -1,10 +1,10 @@
-import type { Agent } from './types';
+import type { Agent } from './types.ts';
 
 // Icons
-import BrainIcon from './components/icons/BrainIcon';
-import BulbIcon from './components/icons/BulbIcon';
-import RocketIcon from './components/icons/RocketIcon';
-import CodeIcon from './components/icons/CodeIcon';
+import BrainIcon from './components/icons/BrainIcon.tsx';
+import BulbIcon from './components/icons/BulbIcon.tsx';
+import RocketIcon from './components/icons/RocketIcon.tsx';
+import CodeIcon from './components/icons/CodeIcon.tsx';
 
 
 export const AGENTS: Agent[] = [

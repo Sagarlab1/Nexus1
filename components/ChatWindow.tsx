@@ -1,11 +1,11 @@
 import React, { useRef, useEffect } from 'react';
-import type { Message, Agent } from '../types';
-import SendIcon from './icons/SendIcon';
-import MicrophoneIcon from './icons/MicrophoneIcon';
-import StopIcon from './icons/StopIcon';
-import UserIcon from './icons/UserIcon';
-import NexusLogo from './icons/NexusLogo';
-import SpeakerOffIcon from './icons/SpeakerOffIcon';
+import type { Message, Agent, AgentColor } from '../types.ts';
+import SendIcon from './icons/SendIcon.tsx';
+import MicrophoneIcon from './icons/MicrophoneIcon.tsx';
+import StopIcon from './icons/StopIcon.tsx';
+import UserIcon from './icons/UserIcon.tsx';
+import NexusLogo from './icons/NexusLogo.tsx';
+import SpeakerOffIcon from './icons/SpeakerOffIcon.tsx';
 
 interface ChatWindowProps {
   messages: Message[];
@@ -19,7 +19,16 @@ interface ChatWindowProps {
   onToggleListening: () => void;
   isSpeaking: boolean;
   onStopSpeaking: () => void;
+  browserSupportsSpeechRecognition: boolean;
 }
+
+const colorTextClasses: Record<AgentColor, string> = {
+  cyan: 'text-cyan-400',
+  purple: 'text-purple-400',
+  yellow: 'text-yellow-400',
+  pink: 'text-pink-400',
+};
+
 
 const ChatWindow: React.FC<ChatWindowProps> = ({
   messages,
@@ -33,8 +42,10 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   onToggleListening,
   isSpeaking,
   onStopSpeaking,
+  browserSupportsSpeechRecognition,
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const textColor = colorTextClasses[activeAgent.color];
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -61,7 +72,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
     <div className="bg-gray-900/50 backdrop-blur-sm border border-gray-700/50 rounded-lg shadow-lg shadow-black/20 flex flex-col h-[calc(100vh-4rem)]">
       <div className="p-4 border-b border-gray-700/50 flex items-center">
         <activeAgent.icon
-          className={`w-8 h-8 mr-3 text-${activeAgent.color}-400`}
+          className={`w-8 h-8 mr-3 ${textColor}`}
         />
         <div>
           <h2 className="text-xl font-bold text-white">{activeAgent.name}</h2>
@@ -89,9 +100,9 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
               {msg.sender === 'agent' && (
                 <div className="w-8 h-8 flex-shrink-0 rounded-full bg-gray-800 flex items-center justify-center">
                     {isLoading && msg.id === messages[messages.length - 1].id ? (
-                        <NexusLogo className={`w-6 h-6 text-${activeAgent.color}-400 animate-spin`} />
+                        <NexusLogo className={`w-6 h-6 ${textColor} animate-spin`} />
                     ) : (
-                        <activeAgent.icon className={`w-6 h-6 text-${activeAgent.color}-400`} />
+                        <activeAgent.icon className={`w-6 h-6 ${textColor}`} />
                     )}
                 </div>
               )}
@@ -114,7 +125,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
            {isLoading && messages[messages.length - 1]?.sender !== 'agent' && (
              <div className="flex items-start gap-4 justify-start">
                 <div className="w-8 h-8 flex-shrink-0 rounded-full bg-gray-800 flex items-center justify-center">
-                    <NexusLogo className={`w-6 h-6 text-${activeAgent.color}-400 animate-spin`} />
+                    <NexusLogo className={`w-6 h-6 ${textColor} animate-spin`} />
                 </div>
                 <div className="max-w-xl p-4 rounded-xl shadow-md bg-gray-700 text-gray-200 rounded-bl-none">
                     <p className="whitespace-pre-wrap">Pensando...</p>
@@ -147,8 +158,9 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
             )}
              <button
               onClick={onToggleListening}
-              className={`p-2 rounded-full transition-colors ${isListening ? 'bg-red-500/20' : 'hover:bg-gray-700'}`}
-              title={isListening ? 'Stop Listening' : 'Start Listening'}
+              disabled={!browserSupportsSpeechRecognition}
+              className={`p-2 rounded-full transition-colors ${isListening ? 'bg-red-500/20' : 'hover:bg-gray-700'} disabled:opacity-50 disabled:cursor-not-allowed`}
+              title={browserSupportsSpeechRecognition ? (isListening ? 'Detener' : 'Hablar') : 'Reconocimiento de voz no disponible'}
             >
               <MicrophoneIcon className={`w-6 h-6 ${isListening ? 'text-red-500' : 'text-gray-400'}`} />
             </button>
