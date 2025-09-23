@@ -6,7 +6,7 @@ import NexusZeroPage from './components/NexusZeroPage.tsx';
 import ProgramsPage from './components/ProgramsPage.tsx';
 import LatinoChallengesPage from './components/LatinoChallengesPage.tsx';
 import CognitiveGymPage from './components/CognitiveGymPage.tsx';
-import LoginScreen from './components/LoginScreen.tsx';
+import ConfigurationErrorScreen from './components/ConfigurationErrorScreen.tsx';
 import PremiumModal from './components/PremiumModal.tsx';
 import ChatModal from './components/ChatModal.tsx';
 import FloatingChatButton from './components/FloatingChatButton.tsx';
@@ -21,26 +21,26 @@ import NexusLogo from './components/icons/NexusLogo.tsx';
 import MenuIcon from './components/icons/MenuIcon.tsx';
 
 const App: React.FC = () => {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  
+  const isApiKeySet = !!process.env.API_KEY;
+
   const defaultAgent = AGENTS.find(a => a.id === 'critical_thinking') || AGENTS[0];
   
-  const [activeView, setActiveView] = useState<View>('chat');
+  const [activeView, setActiveView] = useState<View>('nexus_zero_course');
   const [activeAgent, setActiveAgent] = useState<Agent>(defaultAgent);
   
-  const [messages, setMessages] = useState<Message[]>([
-    { id: `welcome-${defaultAgent.id}-${Date.now()}`, sender: 'agent', text: `¡Hola! Soy ${defaultAgent.name}. ¿Cómo puedo asistirte hoy?` }
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [isSending, setIsSending] = useState(false);
   
   const [showPremiumModal, setShowPremiumModal] = useState(false);
   const [showChatModal, setShowChatModal] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-
-  const handleLogin = () => {
-    setIsLoggedIn(true);
-  };
+  useEffect(() => {
+    // Initialize chat with the default agent message when the app loads
+    if (isApiKeySet) {
+      initChat(defaultAgent);
+    }
+  }, [isApiKeySet]);
   
   const initChat = (agent: Agent) => {
       setMessages([
@@ -115,12 +115,12 @@ const App: React.FC = () => {
       case 'gen_ai_course':
         return <GenerativeAiCoursePage onBack={() => setActiveView('programs')} />;
       default:
-        return <ChatWindow messages={messages} activeAgent={activeAgent} onSendMessage={handleSendMessage} isSending={isSending} onClose={() => handleNavigate('nexus_zero_course')} />;
+        return <NexusZeroPage onNavigateToPrograms={() => setActiveView('programs')} />;
     }
   };
   
-  if (!isLoggedIn) {
-    return <LoginScreen onLogin={handleLogin} />;
+  if (!isApiKeySet) {
+    return <ConfigurationErrorScreen />;
   }
 
   return (
